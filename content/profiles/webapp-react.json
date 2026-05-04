@@ -1,0 +1,53 @@
+{
+  "id": "webapp-react",
+  "name": {
+    "pl": "Aplikacja webowa (React/Next.js)",
+    "en": "Web application (React/Next.js)"
+  },
+  "description": {
+    "pl": "Aplikacja webowa zbudowana w React lub Next.js — SPA, SSR lub hybrydowa.",
+    "en": "Web application built with React or Next.js — SPA, SSR, or hybrid."
+  },
+  "followUpQuestions": [
+    {
+      "id": "ssr",
+      "text": {
+        "pl": "Czy aplikacja będzie renderowana po stronie serwera (SSR), czy tylko w przeglądarce (SPA)?",
+        "en": "Will the app be server-rendered (SSR) or browser-only (SPA)?"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "typescript",
+      "text": {
+        "pl": "Czy używasz TypeScript?",
+        "en": "Are you using TypeScript?"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "auth",
+      "text": {
+        "pl": "Czy aplikacja będzie wymagać logowania użytkowników?",
+        "en": "Will the app require user authentication?"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "state-mgmt",
+      "text": {
+        "pl": "Jakie zarządzanie stanem? (np. Redux, Zustand, React Query, Context)",
+        "en": "What state management? (e.g. Redux, Zustand, React Query, Context)"
+      },
+      "isRequired": false
+    },
+    {
+      "id": "compliance",
+      "text": {
+        "pl": "Wymagana zgodność (RODO, WCAG 2.1 AA, HIPAA)?",
+        "en": "Required compliance (GDPR, WCAG 2.1 AA, HIPAA)?"
+      },
+      "isRequired": false
+    }
+  ]
+}

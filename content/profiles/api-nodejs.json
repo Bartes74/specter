@@ -1,0 +1,53 @@
+{
+  "id": "api-nodejs",
+  "name": {
+    "pl": "API REST (Node.js)",
+    "en": "REST API (Node.js)"
+  },
+  "description": {
+    "pl": "Backendowy serwis API w Node.js — Express, Fastify, NestJS lub podobny.",
+    "en": "Backend API service in Node.js — Express, Fastify, NestJS, or similar."
+  },
+  "followUpQuestions": [
+    {
+      "id": "framework",
+      "text": {
+        "pl": "Jakiego frameworka używasz? (Express, Fastify, NestJS, Hono, raw Node)",
+        "en": "Which framework? (Express, Fastify, NestJS, Hono, raw Node)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "database",
+      "text": {
+        "pl": "Jaka baza danych? (PostgreSQL, MySQL, MongoDB, Redis, brak)",
+        "en": "Which database? (PostgreSQL, MySQL, MongoDB, Redis, none)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "auth-strategy",
+      "text": {
+        "pl": "Strategia uwierzytelniania? (JWT, OAuth2, session-based, API keys)",
+        "en": "Authentication strategy? (JWT, OAuth2, session-based, API keys)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "expected-rps",
+      "text": {
+        "pl": "Spodziewany ruch (requests/sec) w szczycie?",
+        "en": "Expected peak traffic (requests/sec)?"
+      },
+      "isRequired": false
+    },
+    {
+      "id": "compliance",
+      "text": {
+        "pl": "Wymagana zgodność (RODO, PCI-DSS, HIPAA, SOC 2)?",
+        "en": "Required compliance (GDPR, PCI-DSS, HIPAA, SOC 2)?"
+      },
+      "isRequired": false
+    }
+  ]
+}

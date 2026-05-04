@@ -1,0 +1,53 @@
+{
+  "id": "microservices",
+  "name": {
+    "pl": "Mikroserwisy (system rozproszony)",
+    "en": "Microservices (distributed system)"
+  },
+  "description": {
+    "pl": "System składający się z wielu niezależnych serwisów komunikujących się przez sieć.",
+    "en": "System composed of multiple independent services communicating over the network."
+  },
+  "followUpQuestions": [
+    {
+      "id": "communication",
+      "text": {
+        "pl": "Jaki sposób komunikacji? (REST, gRPC, message queue, event bus)",
+        "en": "Communication style? (REST, gRPC, message queue, event bus)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "orchestration",
+      "text": {
+        "pl": "Orkiestracja? (Kubernetes, Docker Swarm, Nomad, ECS, Cloud Run)",
+        "en": "Orchestration? (Kubernetes, Docker Swarm, Nomad, ECS, Cloud Run)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "service-count",
+      "text": {
+        "pl": "Spodziewana liczba serwisów? (małe 3-7, średnie 8-20, duże 20+)",
+        "en": "Expected number of services? (small 3-7, medium 8-20, large 20+)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "observability",
+      "text": {
+        "pl": "Stos observability? (Prometheus+Grafana, Datadog, OpenTelemetry+Jaeger, ELK)",
+        "en": "Observability stack? (Prometheus+Grafana, Datadog, OpenTelemetry+Jaeger, ELK)"
+      },
+      "isRequired": false
+    },
+    {
+      "id": "data-strategy",
+      "text": {
+        "pl": "Strategia danych? (database-per-service, shared DB, event sourcing, CQRS)",
+        "en": "Data strategy? (database-per-service, shared DB, event sourcing, CQRS)"
+      },
+      "isRequired": false
+    }
+  ]
+}

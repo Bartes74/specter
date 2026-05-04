@@ -1,0 +1,45 @@
+{
+  "id": "desktop",
+  "name": {
+    "pl": "Aplikacja desktopowa (Electron / Tauri)",
+    "en": "Desktop application (Electron / Tauri)"
+  },
+  "description": {
+    "pl": "Aplikacja desktopowa cross-platform — Electron, Tauri lub natywny framework (Qt, .NET).",
+    "en": "Cross-platform desktop app — Electron, Tauri, or native framework (Qt, .NET)."
+  },
+  "followUpQuestions": [
+    {
+      "id": "framework",
+      "text": {
+        "pl": "Framework? (Electron, Tauri, Qt, .NET MAUI, native)",
+        "en": "Framework? (Electron, Tauri, Qt, .NET MAUI, native)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "platforms",
+      "text": {
+        "pl": "Wspierane systemy? (macOS, Windows, Linux, wszystkie)",
+        "en": "Supported systems? (macOS, Windows, Linux, all)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "auto-update",
+      "text": {
+        "pl": "Czy potrzebujesz auto-aktualizacji w tle?",
+        "en": "Do you need silent auto-updates?"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "code-signing",
+      "text": {
+        "pl": "Czy planujesz podpisywanie kodu (notaryzacja Apple, EV cert dla Windows)?",
+        "en": "Will you code-sign (Apple notarization, EV cert for Windows)?"
+      },
+      "isRequired": false
+    }
+  ]
+}

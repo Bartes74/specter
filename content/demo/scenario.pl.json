@@ -1,0 +1,25 @@
+{
+  "projectDescription": "Aplikacja webowa do zarządzania zadaniami zespołu z możliwością przypisywania osób, dodawania komentarzy i widoku kalendarza. Chcę żeby działała w przeglądarce, była szybka i miała tryb ciemny.",
+  "prefilledAnswers": [
+    { "questionId": "q1", "answer": "Małe zespoły 3-10 osób w firmach IT.", "skipped": false },
+    { "questionId": "q2", "answer": "Zarządzanie zadaniami, komentarze, kalendarz.", "skipped": false },
+    { "questionId": "q3", "answer": "Brak twardego deadline, MVP w 2 miesiące.", "skipped": false },
+    { "questionId": "q4", "answer": "RODO (mamy użytkowników z UE).", "skipped": false }
+  ],
+  "mockedSuggestions": [
+    {
+      "id": "demo-sugg-1",
+      "documentType": "requirements",
+      "severity": "info",
+      "message": "Rozważ dodanie wymagania dotyczącego eksportu danych (RODO).",
+      "suggestedAction": "Wygeneruj wymaganie 'Eksport danych użytkownika' w sekcji RODO."
+    },
+    {
+      "id": "demo-sugg-2",
+      "documentType": "design",
+      "severity": "warning",
+      "message": "Brak diagramu komponentów dla widoku kalendarza.",
+      "suggestedAction": "Dodaj sekcję 'Widok kalendarza' z opisem komponentów."
+    }
+  ]
+}

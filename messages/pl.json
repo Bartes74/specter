@@ -1,0 +1,199 @@
+{
+  "app": {
+    "name": "Spec Generator",
+    "tagline": "Generuj specyfikacje projektów dla narzędzi AI w prostych krokach"
+  },
+  "common": {
+    "next": "Dalej",
+    "back": "Wstecz",
+    "skip": "Pomiń",
+    "skipAll": "Pomiń pozostałe i przejdź dalej",
+    "cancel": "Anuluj",
+    "save": "Zapisz",
+    "edit": "Edytuj",
+    "regenerate": "Wygeneruj ponownie",
+    "loading": "Ładowanie…",
+    "error": "Błąd",
+    "retry": "Spróbuj ponownie",
+    "close": "Zamknij",
+    "yes": "Tak",
+    "no": "Nie",
+    "optional": "opcjonalnie",
+    "required": "wymagane",
+    "characters": "znaków",
+    "language": "Język"
+  },
+  "wizard": {
+    "step": "Krok {current} z {total}",
+    "progress": "Postęp generowania",
+    "progressBar": "Pasek postępu wizarda"
+  },
+  "projectPicker": {
+    "title": "Wybierz projekt",
+    "subtitle": "Wskaż folder, w którym zapiszemy wygenerowane dokumenty",
+    "recentProjects": "Ostatnie projekty",
+    "noRecent": "Nie masz jeszcze żadnych projektów. Zacznij od utworzenia nowego.",
+    "selectFolder": "Wybierz folder",
+    "dropFolderHere": "lub upuść folder tutaj",
+    "createNew": "Nowy projekt",
+    "createNewSubtitle": "Utwórz pusty folder dla nowego projektu",
+    "newProjectName": "Nazwa projektu",
+    "newProjectParent": "Lokalizacja",
+    "manualPath": "Wpisz ścieżkę ręcznie",
+    "manualPathHint": "Dla zaawansowanych — pełna ścieżka do folderu",
+    "validating": "Sprawdzam folder…",
+    "pathInvalid": "Folder nie istnieje. Czy chcesz go utworzyć?",
+    "pathNotWritable": "Brak uprawnień do zapisu w tym folderze",
+    "pathOk": "Folder gotowy",
+    "createThisFolder": "Utwórz ten folder",
+    "hasStandards": "Wykryto plik standards.md w projekcie"
+  },
+  "description": {
+    "title": "Opisz swój projekt",
+    "subtitle": "Napisz w prostych słowach co chcesz zbudować — to wystarczy, żeby zacząć",
+    "placeholder": "Np. Aplikacja webowa do zarządzania zadaniami zespołu z możliwością przypisywania osób, dodawania komentarzy i widoku kalendarza…",
+    "minLength": "Opis musi mieć co najmniej 20 znaków",
+    "maxLength": "Maksymalna długość opisu to 10 000 znaków",
+    "tips": {
+      "title": "Wskazówki",
+      "items": [
+        "Napisz o problemie, który chcesz rozwiązać",
+        "Wskaż kto będzie używał aplikacji",
+        "Wymień najważniejsze funkcje",
+        "Opisz w czym aplikacja ma być inna niż istniejące rozwiązania"
+      ]
+    }
+  },
+  "questions": {
+    "title": "Pytania doprecyzowujące",
+    "subtitle": "Odpowiedz na kilka pytań, żeby specyfikacja była dokładna",
+    "of": "Pytanie {current} z {total}",
+    "completeness": "Mamy ok. {percent}% potrzebnych informacji",
+    "completenessReady": "Możesz zakończyć etap pytań",
+    "answerPlaceholder": "Twoja odpowiedź…",
+    "suggested": "Sugerowane odpowiedzi",
+    "skipThis": "Pomiń to pytanie",
+    "askMore": "Wygeneruj więcej pytań na podstawie moich odpowiedzi"
+  },
+  "tool": {
+    "title": "Wybierz narzędzie AI",
+    "subtitle": "Dla jakiego narzędzia zoptymalizować specyfikację?",
+    "recommended": "Polecane dla Twojego projektu",
+    "useRecommended": "Użyj rekomendacji",
+    "showAll": "Pokaż wszystkie opcje",
+    "universal": "Uniwersalny / Nie wiem",
+    "universalDescription": "Neutralny format zrozumiały dla wszystkich narzędzi"
+  },
+  "model": {
+    "title": "Wybierz model AI",
+    "subtitle": "Który model wygeneruje Twoją specyfikację?",
+    "recommended": "Polecany dla tego projektu",
+    "estimatedTime": "Czas: ~{seconds}s",
+    "estimatedCost": "Koszt: ~${cost}",
+    "qualityLevel": {
+      "fast": "Szybki",
+      "balanced": "Zbalansowany",
+      "highest": "Najwyższa jakość"
+    },
+    "apiKey": {
+      "label": "Klucz API",
+      "placeholder": "Wklej swój klucz tutaj",
+      "validating": "Sprawdzam klucz…",
+      "valid": "Klucz działa",
+      "invalid": "Klucz nie zadziałał",
+      "noKey": "Nie mam klucza — pokaż jak go zdobyć",
+      "showTutorial": "Pokaż instrukcję krok po kroku"
+    }
+  },
+  "tutorial": {
+    "title": "Jak zdobyć klucz API",
+    "estimatedCost": "Szacowane koszty",
+    "freeTier": "Darmowy plan",
+    "security": "Bezpieczeństwo klucza",
+    "iHaveKey": "Mam klucz — wracam",
+    "stale": "Treść może być nieaktualna — sprawdź oryginalną dokumentację",
+    "verifiedDaysAgo": "Treść zweryfikowana {days} dni temu",
+    "openSource": "Otwórz oryginalną dokumentację"
+  },
+  "standards": {
+    "title": "Standardy projektu",
+    "existing": "Wykryto Twój plik standards.md. Czy go użyć?",
+    "useExisting": "Użyj istniejącego",
+    "edit": "Edytuj przed użyciem",
+    "missing": "Nie masz pliku standards.md",
+    "generateMissing": "Wygeneruj standards.md (najlepsze praktyki dla Twojego projektu)",
+    "skipMissing": "Pomiń — wygeneruj specyfikację bez standardów",
+    "generator": {
+      "title": "Generator standardów",
+      "subtitle": "Wybierz typ projektu, a my przygotujemy plik standards.md z najlepszymi praktykami",
+      "selectProfile": "Wybierz typ projektu",
+      "questions": "Kilka pytań uzupełniających",
+      "generating": "Generuję standardy…",
+      "preview": "Podgląd standardów",
+      "saveToFile": "Zapisz do standards.md"
+    }
+  },
+  "generation": {
+    "title": "Generowanie specyfikacji",
+    "subtitle": "To może chwilę potrwać — zaparz sobie kawę",
+    "steps": {
+      "requirements": "Wymagania (requirements.md)",
+      "design": "Projekt techniczny (design.md)",
+      "tasks": "Plan zadań (tasks.md)"
+    },
+    "status": {
+      "pending": "Oczekuje",
+      "inProgress": "W trakcie…",
+      "completed": "Gotowe",
+      "error": "Błąd"
+    }
+  },
+  "preview": {
+    "title": "Podgląd dokumentów",
+    "subtitle": "Sprawdź wygenerowane dokumenty przed zapisaniem",
+    "regenerateAll": "Wygeneruj cały dokument ponownie",
+    "regenerateSection": "Wygeneruj tę sekcję ponownie",
+    "additionalInstructions": "Dodatkowe wskazówki (opcjonalnie)",
+    "saveAll": "Zapisz wszystkie dokumenty",
+    "savedTo": "Zapisano w: {path}",
+    "diff": {
+      "title": "Co się zmieniło",
+      "accept": "Zaakceptuj zmiany",
+      "revert": "Cofnij zmiany"
+    },
+    "history": "Historia wersji",
+    "suggestions": {
+      "title": "Sugestie AI",
+      "accept": "Zaakceptuj",
+      "dismiss": "Odrzuć"
+    }
+  },
+  "error": {
+    "title": "Wystąpił błąd",
+    "whatHappened": "Co się stało",
+    "whatItMeans": "Co to oznacza",
+    "howToFix": "Jak to naprawić",
+    "fix": "Napraw ten błąd",
+    "copyReport": "Skopiuj raport błędu",
+    "errorId": "Identyfikator błędu: {id}",
+    "codes": {
+      "NETWORK_ERROR": "Problem z połączeniem",
+      "TOKEN_LIMIT": "Treść jest zbyt długa",
+      "AUTH_ERROR": "Klucz API nie zadziałał",
+      "FILE_ACCESS": "Brak dostępu do pliku",
+      "PATH_NOT_FOUND": "Folder nie istnieje",
+      "PARSE_ERROR": "Nieoczekiwana odpowiedź modelu",
+      "STANDARDS_ERROR": "Nie udało się wygenerować standardów",
+      "UNKNOWN": "Nieoczekiwany błąd"
+    }
+  },
+  "tour": {
+    "skip": "Pomiń wprowadzenie",
+    "next": "Dalej",
+    "tryDemo": "Wypróbuj demo",
+    "startReal": "Rozpocznij prawdziwą sesję"
+  },
+  "demo": {
+    "banner": "Tryb demo — dane są symulowane, nic nie zostanie zapisane na dysk"
+  }
+}

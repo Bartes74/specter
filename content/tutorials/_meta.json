@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "providers": {
+    "openai": {
+      "sourceUrl": "https://platform.openai.com/docs/quickstart",
+      "lastUpdatedAt": "2026-05-03T00:00:00.000Z",
+      "verifiedAgainstDocsAt": "2026-05-03T00:00:00.000Z",
+      "contentHash": "ea39196f885e0921026e48be10f929915a555ff72143a0aa03a005ca9fa48669",
+      "locales": ["pl", "en"]
+    },
+    "anthropic": {
+      "sourceUrl": "https://docs.anthropic.com/en/docs/get-started",
+      "lastUpdatedAt": "2026-05-03T00:00:00.000Z",
+      "verifiedAgainstDocsAt": "2026-05-03T00:00:00.000Z",
+      "contentHash": "c1dfbae62c3e97c17cd195960d08dc2ddf258f553781fb29c5ca1619f03e7197",
+      "locales": ["pl", "en"]
+    },
+    "google": {
+      "sourceUrl": "https://ai.google.dev/gemini-api/docs/api-key",
+      "lastUpdatedAt": "2026-05-03T00:00:00.000Z",
+      "verifiedAgainstDocsAt": "2026-05-03T00:00:00.000Z",
+      "contentHash": "ba64b5c426b03d695b7e3a0d295ef908617fef9359dd560d00f809de0139c11a",
+      "locales": ["pl", "en"]
+    },
+    "github": {
+      "sourceUrl": "https://docs.github.com/en/github-models/prototyping-with-ai-models",
+      "lastUpdatedAt": "2026-05-03T00:00:00.000Z",
+      "verifiedAgainstDocsAt": "2026-05-03T00:00:00.000Z",
+      "contentHash": "4a425b95478b5cece743fd16bdcd6ce40598b09db9d9eae4f8f628b4a1c6121d",
+      "locales": ["pl", "en"]
+    }
+  }
+}

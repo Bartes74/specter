@@ -1,0 +1,45 @@
+{
+  "id": "monorepo",
+  "name": {
+    "pl": "Monorepo (wiele pakietów w jednym repo)",
+    "en": "Monorepo (multiple packages in one repo)"
+  },
+  "description": {
+    "pl": "Repozytorium zawierające wiele powiązanych pakietów / aplikacji — pnpm workspaces, Turborepo, Nx.",
+    "en": "Repository containing multiple related packages/apps — pnpm workspaces, Turborepo, Nx."
+  },
+  "followUpQuestions": [
+    {
+      "id": "tooling",
+      "text": {
+        "pl": "Jakie narzędzie do monorepo? (pnpm workspaces, Turborepo, Nx, Lerna, Bazel)",
+        "en": "Which monorepo tool? (pnpm workspaces, Turborepo, Nx, Lerna, Bazel)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "languages",
+      "text": {
+        "pl": "Jakie języki w repo? (TypeScript, Python, Go, Rust, mix)",
+        "en": "Which languages? (TypeScript, Python, Go, Rust, mix)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "shared-packages",
+      "text": {
+        "pl": "Ile spodziewanych pakietów współdzielonych? (mała 1-5, średnia 5-20, duża 20+)",
+        "en": "Expected number of shared packages? (small 1-5, medium 5-20, large 20+)"
+      },
+      "isRequired": false
+    },
+    {
+      "id": "deployment",
+      "text": {
+        "pl": "Jak wdrażane są pakiety? (osobne deploye, wspólny release, hybryda)",
+        "en": "How are packages deployed? (independent, joint release, hybrid)"
+      },
+      "isRequired": false
+    }
+  ]
+}

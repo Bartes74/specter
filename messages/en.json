@@ -1,0 +1,199 @@
+{
+  "app": {
+    "name": "Spec Generator",
+    "tagline": "Generate project specifications for AI tools in simple steps"
+  },
+  "common": {
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip",
+    "skipAll": "Skip the rest and continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "regenerate": "Regenerate",
+    "loading": "Loading…",
+    "error": "Error",
+    "retry": "Try again",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "optional": "optional",
+    "required": "required",
+    "characters": "characters",
+    "language": "Language"
+  },
+  "wizard": {
+    "step": "Step {current} of {total}",
+    "progress": "Generation progress",
+    "progressBar": "Wizard progress bar"
+  },
+  "projectPicker": {
+    "title": "Pick a project",
+    "subtitle": "Choose the folder where the generated docs will be saved",
+    "recentProjects": "Recent projects",
+    "noRecent": "You don't have any projects yet. Start by creating a new one.",
+    "selectFolder": "Select folder",
+    "dropFolderHere": "or drop a folder here",
+    "createNew": "New project",
+    "createNewSubtitle": "Create an empty folder for a new project",
+    "newProjectName": "Project name",
+    "newProjectParent": "Location",
+    "manualPath": "Type a path manually",
+    "manualPathHint": "For advanced users — full path to the folder",
+    "validating": "Checking folder…",
+    "pathInvalid": "Folder doesn't exist. Want us to create it?",
+    "pathNotWritable": "No write permissions in this folder",
+    "pathOk": "Folder ready",
+    "createThisFolder": "Create this folder",
+    "hasStandards": "Found a standards.md file in this project"
+  },
+  "description": {
+    "title": "Describe your project",
+    "subtitle": "Write in plain language what you want to build — that's enough to get started",
+    "placeholder": "E.g. A web app for team task management with assignments, comments and a calendar view…",
+    "minLength": "Description must be at least 20 characters long",
+    "maxLength": "Maximum description length is 10,000 characters",
+    "tips": {
+      "title": "Tips",
+      "items": [
+        "Describe the problem you want to solve",
+        "Say who will use the app",
+        "List the most important features",
+        "Note how it should differ from existing solutions"
+      ]
+    }
+  },
+  "questions": {
+    "title": "Clarifying questions",
+    "subtitle": "Answer a few questions to make the spec accurate",
+    "of": "Question {current} of {total}",
+    "completeness": "We have about {percent}% of the info we need",
+    "completenessReady": "You can finish the questions stage",
+    "answerPlaceholder": "Your answer…",
+    "suggested": "Suggested answers",
+    "skipThis": "Skip this question",
+    "askMore": "Generate more questions based on my answers"
+  },
+  "tool": {
+    "title": "Pick an AI tool",
+    "subtitle": "Which tool should we optimize the spec for?",
+    "recommended": "Recommended for your project",
+    "useRecommended": "Use recommendation",
+    "showAll": "Show all options",
+    "universal": "Universal / Don't know",
+    "universalDescription": "Neutral format that works for any tool"
+  },
+  "model": {
+    "title": "Pick an AI model",
+    "subtitle": "Which model should generate your spec?",
+    "recommended": "Recommended for this project",
+    "estimatedTime": "Time: ~{seconds}s",
+    "estimatedCost": "Cost: ~${cost}",
+    "qualityLevel": {
+      "fast": "Fast",
+      "balanced": "Balanced",
+      "highest": "Highest quality"
+    },
+    "apiKey": {
+      "label": "API key",
+      "placeholder": "Paste your key here",
+      "validating": "Checking key…",
+      "valid": "Key works",
+      "invalid": "Key didn't work",
+      "noKey": "I don't have a key — show me how to get one",
+      "showTutorial": "Show step-by-step tutorial"
+    }
+  },
+  "tutorial": {
+    "title": "How to get an API key",
+    "estimatedCost": "Estimated cost",
+    "freeTier": "Free tier",
+    "security": "Key security",
+    "iHaveKey": "I have a key — back to the form",
+    "stale": "This content may be out of date — check the original docs",
+    "verifiedDaysAgo": "Content verified {days} days ago",
+    "openSource": "Open original documentation"
+  },
+  "standards": {
+    "title": "Project standards",
+    "existing": "We found your standards.md file. Use it?",
+    "useExisting": "Use existing",
+    "edit": "Edit before use",
+    "missing": "You don't have a standards.md file",
+    "generateMissing": "Generate standards.md (best practices for your project)",
+    "skipMissing": "Skip — generate the spec without standards",
+    "generator": {
+      "title": "Standards generator",
+      "subtitle": "Pick a project type and we'll prepare a standards.md with best practices",
+      "selectProfile": "Select project type",
+      "questions": "A few follow-up questions",
+      "generating": "Generating standards…",
+      "preview": "Standards preview",
+      "saveToFile": "Save to standards.md"
+    }
+  },
+  "generation": {
+    "title": "Generating the spec",
+    "subtitle": "This may take a moment — grab a coffee",
+    "steps": {
+      "requirements": "Requirements (requirements.md)",
+      "design": "Technical design (design.md)",
+      "tasks": "Task plan (tasks.md)"
+    },
+    "status": {
+      "pending": "Waiting",
+      "inProgress": "In progress…",
+      "completed": "Done",
+      "error": "Error"
+    }
+  },
+  "preview": {
+    "title": "Document preview",
+    "subtitle": "Review the generated docs before saving",
+    "regenerateAll": "Regenerate the whole document",
+    "regenerateSection": "Regenerate this section",
+    "additionalInstructions": "Additional instructions (optional)",
+    "saveAll": "Save all documents",
+    "savedTo": "Saved to: {path}",
+    "diff": {
+      "title": "What changed",
+      "accept": "Accept changes",
+      "revert": "Revert changes"
+    },
+    "history": "Version history",
+    "suggestions": {
+      "title": "AI suggestions",
+      "accept": "Accept",
+      "dismiss": "Dismiss"
+    }
+  },
+  "error": {
+    "title": "Something went wrong",
+    "whatHappened": "What happened",
+    "whatItMeans": "What it means",
+    "howToFix": "How to fix it",
+    "fix": "Fix this error",
+    "copyReport": "Copy error report",
+    "errorId": "Error ID: {id}",
+    "codes": {
+      "NETWORK_ERROR": "Connection problem",
+      "TOKEN_LIMIT": "Content is too long",
+      "AUTH_ERROR": "API key didn't work",
+      "FILE_ACCESS": "No access to file",
+      "PATH_NOT_FOUND": "Folder doesn't exist",
+      "PARSE_ERROR": "Unexpected model response",
+      "STANDARDS_ERROR": "Couldn't generate standards",
+      "UNKNOWN": "Unexpected error"
+    }
+  },
+  "tour": {
+    "skip": "Skip intro",
+    "next": "Next",
+    "tryDemo": "Try demo",
+    "startReal": "Start a real session"
+  },
+  "demo": {
+    "banner": "Demo mode — data is simulated, nothing will be saved to disk"
+  }
+}

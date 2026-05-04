@@ -1,0 +1,53 @@
+{
+  "id": "mobile-flutter",
+  "name": {
+    "pl": "Aplikacja mobilna (Flutter / React Native)",
+    "en": "Mobile app (Flutter / React Native)"
+  },
+  "description": {
+    "pl": "Mobilna aplikacja cross-platform (iOS + Android) zbudowana w Flutter lub React Native.",
+    "en": "Cross-platform mobile app (iOS + Android) built with Flutter or React Native."
+  },
+  "followUpQuestions": [
+    {
+      "id": "framework",
+      "text": {
+        "pl": "Flutter czy React Native?",
+        "en": "Flutter or React Native?"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "platforms",
+      "text": {
+        "pl": "Które platformy? (iOS, Android, obie)",
+        "en": "Which platforms? (iOS, Android, both)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "offline",
+      "text": {
+        "pl": "Czy aplikacja musi działać offline?",
+        "en": "Does the app need to work offline?"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "native-modules",
+      "text": {
+        "pl": "Czy potrzebujesz natywnych modułów (kamera, GPS, biometria, push)?",
+        "en": "Do you need native modules (camera, GPS, biometrics, push)?"
+      },
+      "isRequired": false
+    },
+    {
+      "id": "store-publishing",
+      "text": {
+        "pl": "Planowana publikacja w sklepach (App Store, Google Play)?",
+        "en": "Planned publication on stores (App Store, Google Play)?"
+      },
+      "isRequired": false
+    }
+  ]
+}

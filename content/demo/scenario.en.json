@@ -1,0 +1,25 @@
+{
+  "projectDescription": "A web app for team task management with assignments, comments and a calendar view. I want it to run in the browser, be fast and have a dark mode.",
+  "prefilledAnswers": [
+    { "questionId": "q1", "answer": "Small teams of 3-10 people in IT companies.", "skipped": false },
+    { "questionId": "q2", "answer": "Task management, comments, calendar.", "skipped": false },
+    { "questionId": "q3", "answer": "No hard deadline, MVP in 2 months.", "skipped": false },
+    { "questionId": "q4", "answer": "GDPR (we have EU users).", "skipped": false }
+  ],
+  "mockedSuggestions": [
+    {
+      "id": "demo-sugg-1",
+      "documentType": "requirements",
+      "severity": "info",
+      "message": "Consider adding a data export requirement (GDPR).",
+      "suggestedAction": "Generate a 'User data export' requirement under the GDPR section."
+    },
+    {
+      "id": "demo-sugg-2",
+      "documentType": "design",
+      "severity": "warning",
+      "message": "No component diagram for the calendar view.",
+      "suggestedAction": "Add a 'Calendar view' section describing components."
+    }
+  ]
+}

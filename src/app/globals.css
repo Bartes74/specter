@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ──────────────────────────────────────────────────────────
+ * "Editorial Specification" tokens — light & dark
+ * Format RGB triplet, Tailwind dokleja /<alpha-value>.
+ * Paleta: ciepły kremowy → graphite ink, akcent: sienna / amber.
+ * ────────────────────────────────────────────────────────── */
+:root {
+  /* Light: warm cream paper */
+  --bg:          250 247 240;   /* #faf7f0 — papier */
+  --bg-elevated: 255 253 247;   /* #fffdf7 — kartka uniesiona */
+  --bg-inset:    243 239 230;   /* #f3efe6 — sekcja wpuszczona */
+  --bg-accent:   251 235 217;   /* #fbebd9 — tło dla akcentów */
+
+  --ink:         28 26 22;      /* #1c1a16 — ciepły graphite, nie pure black */
+  --ink-muted:   107 99 86;     /* #6b6356 — wtórny */
+  --ink-subtle:  152 142 124;   /* #988e7c — placeholder */
+  --ink-accent:  154 64 24;     /* #9a4018 — akcent dla tekstu (głębsza sienna dla AA) */
+  --ink-on-accent: 255 252 245; /* tekst na akcent bg */
+
+  --rule:        225 218 203;   /* #e1dacb — domyślna linia */
+  --rule-strong: 197 187 166;   /* #c5bba6 — separator */
+
+  --accent:      178 92 46;     /* #b25c2e — sienna (burnt amber) */
+  --accent-hover:154 64 24;     /* #9a4018 — głębsza */
+  --accent-subtle:251 232 215;  /* #fbe8d7 — bardzo blade tło */
+
+  --success: 65 122 73;         /* #417a49 — leśny zielony, ciepły */
+  --warning: 191 117 23;        /* #bf7517 — żółto-bursztynowy */
+  --danger:  167 50 50;         /* #a73232 — pompejański czerwony */
+
+  --shadow:  64 41 16;          /* baza ciepłego cienia (brąz) */
+  --focus-ring: 178 92 46;
+}
+
+.dark {
+  /* Dark: warm graphite, NIE czarny */
+  --bg:          18 17 15;      /* #12110f — głęboki ciepły inku */
+  --bg-elevated: 28 26 22;      /* #1c1a16 */
+  --bg-inset:    37 34 28;      /* #25221c */
+  --bg-accent:   58 35 18;      /* #3a2312 — głębokie tło sienny */
+
+  --ink:         245 240 228;   /* #f5f0e4 — kremowy */
+  --ink-muted:   180 169 148;   /* #b4a994 */
+  --ink-subtle:  121 112 96;    /* #797060 */
+  --ink-accent:  244 165 96;    /* #f4a560 — light sienna */
+  --ink-on-accent: 18 17 15;
+
+  --rule:        58 53 44;      /* #3a352c */
+  --rule-strong: 92 84 70;      /* #5c5446 */
+
+  --accent:      244 165 96;    /* #f4a560 — light sienna (większa luminancja na ciemnym) */
+  --accent-hover:255 184 110;
+  --accent-subtle:58 35 18;
+
+  --success: 132 191 130;       /* lighter forest */
+  --warning: 232 175 81;
+  --danger:  237 121 121;
+
+  --shadow:  0 0 0;
+  --focus-ring: 244 165 96;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * Bazowa typografia
+ * ────────────────────────────────────────────────────────── */
+html {
+  /* Manrope features — rounded a/g, kerning */
+  font-feature-settings: 'ss01', 'ss02', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--ink));
+  font-family: theme('fontFamily.sans');
+  /* Grain texture overlay — bardzo subtelny papierowy szum */
+  background-image:
+    radial-gradient(at 0% 0%,   rgb(var(--accent) / 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgb(var(--accent) / 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Grain noise jako pseudo-element body */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+}
+.dark body::before {
+  opacity: 0.35;
+  mix-blend-mode: lighten;
+}
+
+/* Display headers — Fraunces, optical-size + soft */
+.font-display {
+  font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 0;
+}
+.font-display-italic {
+  font-style: italic;
+  font-variation-settings: 'opsz' 144, 'SOFT' 60, 'WONK' 1;
+}
+
+::selection {
+  background: rgb(var(--accent) / 0.28);
+  color: rgb(var(--ink));
+}
+
+/* Custom scrollbar — cienki, w tonach paper */
+*::-webkit-scrollbar { width: 12px; height: 12px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--rule-strong));
+  border-radius: 8px;
+  border: 3px solid rgb(var(--bg));
+}
+*::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink-subtle)); }
+
+/* A11y focus — pierścień akcentowy */
+*:focus { outline: none; }
+*:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * Editorial atomic utilities
+ * ────────────────────────────────────────────────────────── */
+@layer components {
+  /* Frosted glass z papierową ciepłą bazą */
+  .surface-glass {
+    background: rgb(var(--bg-elevated) / 0.78);
+    backdrop-filter: saturate(140%) blur(16px);
+    -webkit-backdrop-filter: saturate(140%) blur(16px);
+    border-bottom: 1px solid rgb(var(--rule));
+  }
+
+  /* Karta na papierze */
+  .surface-card {
+    background: rgb(var(--bg-elevated));
+    border: 1px solid rgb(var(--rule));
+    box-shadow: theme('boxShadow.xs');
+  }
+
+  /* Hairline separator typograficzny */
+  .hairline {
+    border-color: rgb(var(--rule));
+  }
+
+  /* Mała etykieta w stylu druku — wszystko caps + tracking */
+  .eyebrow {
+    font-family: theme('fontFamily.mono');
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-subtle));
+  }
+
+  /* Krótki dramatyczny separator z mark */
+  .editorial-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: rgb(var(--ink-subtle));
+  }
+  .editorial-rule::before,
+  .editorial-rule::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgb(var(--rule));
+  }
+
+  /* Pierścień fokusu na ringu kliknięcia (zamiast outline) */
+  .ring-focus {
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
+  }
+}
+
+@layer utilities {
+  /* Numeracja kroków — wielki Fraunces italic, wkomponowany w sidebar */
+  .step-numeral {
+    font-family: theme('fontFamily.display');
+    font-style: italic;
+    font-variation-settings: 'opsz' 144, 'SOFT' 80, 'WONK' 1;
+    font-feature-settings: 'lnum';
+    line-height: 0.85;
+  }
+
+  /* Underline "ink-on-paper" pod headlinem display */
+  .ink-underline {
+    background-image: linear-gradient(
+      to right,
+      rgb(var(--accent)) 0%,
+      rgb(var(--accent)) 100%
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 2px;
+    background-position: 0 100%;
+    padding-bottom: 0.15em;
+  }
+
+  /* Tekst gradientowy ciepły */
+  .text-gradient-warm {
+    background-image: linear-gradient(
+      135deg,
+      rgb(var(--ink)) 0%,
+      rgb(var(--ink-muted)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Hover lift — tylko myszka */
+  @media (hover: hover) {
+    .hover\:lift {
+      transition: transform 250ms theme('transitionTimingFunction.out-expo'),
+                  box-shadow 250ms theme('transitionTimingFunction.out-expo');
+    }
+    .hover\:lift:hover {
+      transform: translateY(-2px);
+      box-shadow: theme('boxShadow.md');
+    }
+  }
+}
+
+/* Wszystkie komponenty z :focus-visible nad layerem — ponad grain */
+header, main, footer, [role="dialog"] {
+  position: relative;
+  z-index: 2;
+}

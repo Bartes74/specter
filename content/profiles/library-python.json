@@ -1,0 +1,53 @@
+{
+  "id": "library-python",
+  "name": {
+    "pl": "Biblioteka open-source (Python)",
+    "en": "Open-source library (Python)"
+  },
+  "description": {
+    "pl": "Pakiet Python do dystrybucji przez PyPI — biblioteka, framework lub narzędzie CLI.",
+    "en": "Python package for PyPI distribution — library, framework, or CLI tool."
+  },
+  "followUpQuestions": [
+    {
+      "id": "python-version",
+      "text": {
+        "pl": "Minimalna wymagana wersja Pythona? (3.9, 3.10, 3.11, 3.12)",
+        "en": "Minimum required Python version? (3.9, 3.10, 3.11, 3.12)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "license",
+      "text": {
+        "pl": "Jaka licencja? (MIT, Apache 2.0, GPL-3, BSD-3, inna)",
+        "en": "Which license? (MIT, Apache 2.0, GPL-3, BSD-3, other)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "packaging",
+      "text": {
+        "pl": "Sposób pakowania? (poetry, hatch, setuptools, uv)",
+        "en": "Packaging tool? (poetry, hatch, setuptools, uv)"
+      },
+      "isRequired": true
+    },
+    {
+      "id": "type-hints",
+      "text": {
+        "pl": "Czy używasz type hints (PEP 484)?",
+        "en": "Are you using type hints (PEP 484)?"
+      },
+      "isRequired": false
+    },
+    {
+      "id": "release-cadence",
+      "text": {
+        "pl": "Planowana częstotliwość wydań? (continuous, monthly, quarterly)",
+        "en": "Planned release cadence? (continuous, monthly, quarterly)"
+      },
+      "isRequired": false
+    }
+  ]
+}
