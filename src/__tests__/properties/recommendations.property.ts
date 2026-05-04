@@ -77,7 +77,7 @@ describe('Property 17: Dostępność rekomendacji modelu (heurystyka)', () => {
       standards: null,
       locale: 'pl',
     });
-    expect(rec.recommended).toBe('gpt-5-mini');
+    expect(rec.recommended).toBe('gpt-5.4-mini');
     expect(rec.confidence).toBe('medium');
   });
 });

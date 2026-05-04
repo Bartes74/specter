@@ -117,6 +117,14 @@ export const Loader = (p: IconProps) => (
     <path d="M21 12a9 9 0 11-6.22-8.56" />
   </Sized>
 );
+export const RefreshCw = (p: IconProps) => (
+  <Sized {...p}>
+    <path d="M21 12a9 9 0 01-15.5 6.3L3 16" />
+    <path d="M3 16v5h5" />
+    <path d="M3 12A9 9 0 0118.5 5.7L21 8" />
+    <path d="M21 8V3h-5" />
+  </Sized>
+);
 export const Monitor = (p: IconProps) => (
   <Sized {...p}>
     <rect x="2" y="3" width="20" height="14" rx="2" />

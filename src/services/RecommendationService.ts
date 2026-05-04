@@ -10,6 +10,7 @@
 import type { TargetTool } from '@/types/providers';
 import { TARGET_TOOLS } from '@/types/providers';
 import type { AppLocale, QuestionAnswer, DocumentSuggestion, Recommendation } from '@/types/session';
+import { MODEL_CATALOG, getModelConfig } from '@/types/models';
 import { makeAdapter, type AIServiceConfig } from './AIService';
 import type { ChatMessage } from './ai/types';
 import { withRetry } from '@/lib/retry';
@@ -37,13 +38,13 @@ const FALLBACK_TOOL: Record<AppLocale, Recommendation<TargetTool>> = {
 
 const FALLBACK_MODEL: Record<AppLocale, Recommendation<string>> = {
   pl: {
-    recommended: 'gpt-5-mini',
-    reason: 'GPT-5 mini oferuje dobry balans jakości, szybkości i kosztu.',
+    recommended: 'gpt-5.4-mini',
+    reason: 'GPT-5.4 mini oferuje aktualny balans jakości, szybkości i kosztu.',
     confidence: 'low',
   },
   en: {
-    recommended: 'gpt-5-mini',
-    reason: 'GPT-5 mini offers a good balance of quality, speed, and cost.',
+    recommended: 'gpt-5.4-mini',
+    reason: 'GPT-5.4 mini offers an up-to-date balance of quality, speed, and cost.',
     confidence: 'low',
   },
 };
@@ -141,8 +142,9 @@ export function recommendModel(
   const totalAnswerLength = ctx.answers.reduce((s, a) => s + a.answer.length, 0);
   const projectSize = ctx.projectDescription.length + totalAnswerLength;
   const hasStandards = !!ctx.standards && ctx.standards.length > 100;
+  const text = `${ctx.projectDescription}\n${ctx.answers.map((a) => a.answer).join('\n')}`.toLowerCase();
 
-  // Dla bardzo dużych kontekstów: Claude Sonnet (200k context)
+  // Dla bardzo dużych kontekstów: Claude Sonnet 4.6 (1M context, dobry koszt/jakość)
   if (projectSize > 5000 || hasStandards) {
     return {
       recommended: 'claude-sonnet-4.6',
@@ -153,18 +155,31 @@ export function recommendModel(
       confidence: 'high',
     };
   }
-  // Dla małych: szybszy model OpenAI albo Gemini Flash (taniej)
-  if (projectSize < 1500) {
+
+  // Dla ryzykownych/strategicznych tematów: najmocniejszy aktualny OpenAI.
+  if (/rodo|gdpr|dora|ai act|finans|finance|bank|medycz|medical|compliance|security|bezpiecze/.test(text)) {
     return {
-      recommended: 'gpt-5-mini',
+      recommended: newestAvailableOpenAIModel(),
       reason:
         ctx.locale === 'pl'
-          ? 'GPT-5 mini jest szybki i tani dla niedużych projektów — dobry start.'
-          : 'GPT-5 mini is fast and inexpensive for small projects — a good starting point.',
+          ? 'Projekt dotyka ryzyka lub zgodności, więc lepiej użyć najmocniejszego aktualnego modelu OpenAI.'
+          : 'The project touches risk or compliance, so the strongest current OpenAI model is safer.',
+      confidence: 'high',
+    };
+  }
+
+  // Dla małych: aktualny szybki/tani model OpenAI.
+  if (projectSize < 1500) {
+    return {
+      recommended: 'gpt-5.4-mini',
+      reason:
+        ctx.locale === 'pl'
+          ? 'GPT-5.4 mini jest szybki i rozsądny kosztowo dla niedużych projektów — dobry start.'
+          : 'GPT-5.4 mini is fast and cost-aware for small projects — a good starting point.',
       confidence: 'medium',
     };
   }
-  // Domyślnie: zbalansowany GPT-4o
+
   return FALLBACK_MODEL[ctx.locale];
 }
 
@@ -377,3 +392,7 @@ function extractJsonObject(raw: string): unknown {
 
 // Eksport fallbacków dla testów
 export const _internal = { FALLBACK_TOOL, FALLBACK_MODEL };
+
+function newestAvailableOpenAIModel(): string {
+  return getModelConfig('gpt-5.5', MODEL_CATALOG)?.id ?? 'gpt-5.4';
+}

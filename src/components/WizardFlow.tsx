@@ -61,6 +61,7 @@ type DocType = 'requirements' | 'design' | 'tasks';
 const DOC_TYPES: readonly DocType[] = ['requirements', 'design', 'tasks'];
 const MISSING_API_KEY_MESSAGE =
   'Klucz API nie jest już dostępny po odświeżeniu strony. Wróć do wyboru modelu i wklej go ponownie.';
+const STARTER_MODEL_ID = 'gpt-5.4-mini';
 
 export function WizardFlow({ locale }: WizardFlowProps) {
   const t = useTranslations();
@@ -80,7 +81,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
   const completenessPercent = computeCompleteness(state.questions, state.answers);
   const stepsForLayout = buildStepsForLayout(t, state.currentStep, computeCompleted(state));
   const selectedModel = useMemo(
-    () => getModelConfig(state.aiModel ?? state.modelRecommendation?.recommended ?? '') ?? MODEL_CATALOG[0]!,
+    () => getModelConfig(state.aiModel ?? state.modelRecommendation?.recommended ?? '') ?? getStarterModel(),
     [state.aiModel, state.modelRecommendation?.recommended],
   );
   const {
@@ -307,14 +308,15 @@ export function WizardFlow({ locale }: WizardFlowProps) {
       const recommendation = body.modelRecommendation;
       if (recommendation) {
         const recommendedModel = getModelConfig(recommendation.recommended);
+        const fallbackModel = getStarterModel();
         update((prev) => ({
           modelRecommendation: recommendation,
-          aiProvider: prev.aiProvider ?? recommendedModel?.provider ?? MODEL_CATALOG[0]!.provider,
-          aiModel: prev.aiModel ?? recommendedModel?.modelId ?? MODEL_CATALOG[0]!.modelId,
+          aiProvider: prev.aiProvider ?? recommendedModel?.provider ?? fallbackModel.provider,
+          aiModel: prev.aiModel ?? recommendedModel?.modelId ?? fallbackModel.modelId,
         }));
       }
     } catch {
-      const model = MODEL_CATALOG[0]!;
+      const model = getStarterModel();
       update((prev) => ({
         aiProvider: prev.aiProvider ?? model.provider,
         aiModel: prev.aiModel ?? model.modelId,
@@ -340,11 +342,13 @@ export function WizardFlow({ locale }: WizardFlowProps) {
 
   useEffect(() => {
     if (!isHydrated) return;
-    if (currentStep.id === 'model' && !state.modelRecommendation && !modelLoading) {
+    const shouldRefreshModelRecommendation =
+      !state.modelRecommendation || state.modelRecommendation.recommended === 'gpt-5-mini';
+    if (currentStep.id === 'model' && shouldRefreshModelRecommendation && !modelLoading) {
       void loadModelRecommendation();
     }
     if (currentStep.id === 'model' && !state.aiModel) {
-      const model = MODEL_CATALOG[0]!;
+      const model = getStarterModel();
       update({ aiProvider: model.provider, aiModel: model.modelId });
     }
   }, [
@@ -692,7 +696,14 @@ export function WizardFlow({ locale }: WizardFlowProps) {
   }
 
   function resolveModelConfig() {
-    return getModelConfig(state.aiModel ?? '') ?? selectedModel;
+    const known = getModelConfig(state.aiModel ?? '');
+    if (known) return known;
+    return {
+      ...selectedModel,
+      provider: state.aiProvider ?? selectedModel.provider,
+      modelId: state.aiModel ?? selectedModel.modelId,
+      name: state.aiModel ?? selectedModel.name,
+    };
   }
 
   async function generateStandardsForProfile(profile: StandardsProfile, answers: QuestionAnswer[]) {
@@ -1005,7 +1016,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
         prefilledAnswers?: QuestionAnswer[];
         mockedSuggestions?: DocumentSuggestion[];
       };
-      const model = MODEL_CATALOG[1] ?? MODEL_CATALOG[0]!;
+      const model = getStarterModel();
       update({
         isDemoMode: true,
         tourStepIndex: null,
@@ -1285,6 +1296,10 @@ function dedupeSuggestions(suggestions: DocumentSuggestion[]): DocumentSuggestio
     unique.push(suggestion);
   }
   return unique;
+}
+
+function getStarterModel() {
+  return getModelConfig(STARTER_MODEL_ID) ?? MODEL_CATALOG[0]!;
 }
 
 function isErrorProfileData(value: unknown): value is ErrorProfileData {

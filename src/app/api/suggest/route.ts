@@ -74,8 +74,8 @@ const DEMO_RESPONSE = {
       confidence: 'medium' as const,
     },
     model: {
-      recommended: 'gpt-5-mini',
-      reason: 'Demo: GPT-5 mini oferuje dobry balans jakości i kosztu.',
+      recommended: 'gpt-5.4-mini',
+      reason: 'Demo: GPT-5.4 mini oferuje dobry balans jakości i kosztu.',
       confidence: 'medium' as const,
     },
     suggestions: [
@@ -95,8 +95,8 @@ const DEMO_RESPONSE = {
       confidence: 'medium' as const,
     },
     model: {
-      recommended: 'gpt-5-mini',
-      reason: 'Demo: GPT-5 mini offers a good quality-cost balance.',
+      recommended: 'gpt-5.4-mini',
+      reason: 'Demo: GPT-5.4 mini offers a good quality-cost balance.',
       confidence: 'medium' as const,
     },
     suggestions: [
