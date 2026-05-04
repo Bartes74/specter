@@ -15,17 +15,12 @@ import {
   FileText,
 } from './ui/Icon';
 import { cn } from '@/lib/cn';
+import { AI_PROVIDER_LABELS, type TargetTool } from '@/types/providers';
 import type { PathValidationResult, ProjectSource } from '@/types/session';
-
-interface RecentProject {
-  path: string;
-  name: string;
-  lastUsedAt: string;
-  hasStandards: boolean;
-}
+import type { RecentProjectWithSummary } from '@/types/project';
 
 export interface ProjectPickerProps {
-  recentProjects: RecentProject[];
+  recentProjects: RecentProjectWithSummary[];
   loadingRecent: boolean;
   onProjectReady: (
     projectPath: string,
@@ -41,13 +36,14 @@ export function ProjectPicker({
 }: ProjectPickerProps) {
   return (
     <div className="space-y-16">
+      <FolderActionsSection index="01" onProjectReady={onProjectReady} />
+
       <RecentProjectsSection
+        index="02"
         recentProjects={recentProjects}
         loading={loadingRecent}
         onSelect={(p) => void validateAndReport(p.path, 'recent', onProjectReady)}
       />
-
-      <FolderActionsSection onProjectReady={onProjectReady} />
     </div>
   );
 }
@@ -57,19 +53,21 @@ export function ProjectPicker({
 // ─────────────────────────────────────────────────────────
 
 function RecentProjectsSection({
+  index,
   recentProjects,
   loading,
   onSelect,
 }: {
-  recentProjects: RecentProject[];
+  index: string;
+  recentProjects: RecentProjectWithSummary[];
   loading: boolean;
-  onSelect: (p: RecentProject) => void;
+  onSelect: (p: RecentProjectWithSummary) => void;
 }) {
   const t = useTranslations();
 
   return (
-    <section className="animate-rise">
-      <SectionLabel index="01" label={t('projectPicker.recentProjects')} />
+    <section className="animate-rise" style={{ animationDelay: '120ms' }}>
+      <SectionLabel index={index} label={t('projectPicker.recentProjects')} />
 
       {loading ? (
         <div className="space-y-0">
@@ -104,11 +102,12 @@ function RecentProjectRow({
   onSelect,
   standardsLabel,
 }: {
-  project: RecentProject;
+  project: RecentProjectWithSummary;
   index: number;
   onSelect: () => void;
   standardsLabel: string;
 }) {
+  const summary = project.summary;
   return (
     <li className="border-b border-rule">
       <button
@@ -136,6 +135,37 @@ function RecentProjectRow({
           <p className="mt-1 font-mono text-xs text-ink-subtle truncate" title={project.path}>
             {project.path}
           </p>
+          {summary?.descriptionPreview ? (
+            <p className="mt-3 max-w-2xl text-sm text-ink-muted leading-relaxed line-clamp-2">
+              {summary.descriptionPreview}
+            </p>
+          ) : (
+            <p className="mt-3 text-sm text-ink-subtle">
+              Brak zapisanych informacji projektu. Otwórz projekt, żeby je uzupełnić.
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {summary?.hasProjectState && <Badge tone="success" size="sm">Dane projektu</Badge>}
+            {summary && (
+              <>
+                <Badge tone="neutral" size="sm">
+                  {summary.answersCount}/{summary.questionsCount || summary.answersCount} odpowiedzi
+                </Badge>
+                <Badge tone="neutral" size="sm">
+                  {summary.documentsCount}/3 dokumenty
+                </Badge>
+              </>
+            )}
+            {summary?.targetTool && (
+              <Badge tone="editorial" size="sm">{toolName(summary.targetTool)}</Badge>
+            )}
+            {summary?.aiModel && (
+              <Badge tone="editorial" size="sm">
+                {summary.aiProvider ? `${AI_PROVIDER_LABELS[summary.aiProvider]} · ` : ''}
+                {summary.aiModel}
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Meta */}
@@ -147,6 +177,11 @@ function RecentProjectRow({
             <Badge tone="accent" size="sm" iconLeft={<FileText size={10} />}>
               {standardsLabel}
             </Badge>
+          )}
+          {summary?.updatedAt && (
+            <span className="font-mono text-2xs text-ink-subtle uppercase tracking-wider">
+              zapis: {formatRelativeTime(summary.updatedAt)}
+            </span>
           )}
         </div>
 
@@ -165,16 +200,18 @@ function RecentProjectRow({
 // ─────────────────────────────────────────────────────────
 
 function FolderActionsSection({
+  index,
   onProjectReady,
 }: {
+  index: string;
   onProjectReady: ProjectPickerProps['onProjectReady'];
 }) {
   const t = useTranslations();
   const [creating, setCreating] = useState(false);
 
   return (
-    <section className="animate-rise" style={{ animationDelay: '120ms' }}>
-      <SectionLabel index="02" label="Lub zacznij od nowa" />
+    <section className="animate-rise">
+      <SectionLabel index={index} label={t('projectPicker.newProjectSpecification')} />
       <div className="grid md:grid-cols-2 gap-6">
         <NewProjectCard
           isOpen={creating}
@@ -525,4 +562,14 @@ function formatRelativeTime(iso: string): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} dni temu`;
   return date.toLocaleDateString();
+}
+
+function toolName(tool: TargetTool): string {
+  return {
+    universal: 'Uniwersalny',
+    'claude-code': 'Claude Code',
+    codex: 'Codex',
+    copilot: 'Copilot',
+    gemini: 'Gemini',
+  }[tool];
 }

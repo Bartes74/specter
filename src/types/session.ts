@@ -57,12 +57,14 @@ export interface DocumentSuggestionDecision {
 }
 
 export type ProjectSource = 'recent' | 'picker' | 'drop' | 'created' | 'manual';
+export type ProjectMode = 'new' | 'edit';
 
 export interface SessionState {
   // Krok 1: Konfiguracja
   projectPath: string;
   pathValidation: PathValidationResult | null;
   projectSource: ProjectSource | null;
+  projectMode: ProjectMode;
 
   // Krok 2: Opis projektu
   projectDescription: string;
@@ -129,6 +131,7 @@ export function createInitialSessionState(locale: AppLocale = 'pl'): SessionStat
     projectPath: '',
     pathValidation: null,
     projectSource: null,
+    projectMode: 'new',
     projectDescription: '',
     questions: [],
     answers: [],

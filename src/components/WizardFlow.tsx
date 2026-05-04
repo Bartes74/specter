@@ -27,6 +27,7 @@ import type {
   Recommendation,
   SessionState,
 } from '@/types/session';
+import type { LoadedProjectWorkspace, ProjectSnapshot, RecentProjectWithSummary } from '@/types/project';
 import type { AIProvider, TargetTool } from '@/types/providers';
 import { WizardLayout } from './WizardLayout';
 import { ProjectPicker } from './ProjectPicker';
@@ -38,19 +39,13 @@ import { ApiKeyTutorial } from './ApiKeyTutorial';
 import { StandardsGenerator, type StandardsProfile } from './StandardsGenerator';
 import { GenerationProgress } from './GenerationProgress';
 import { DocumentPreview } from './DocumentPreview';
+import { ExistingProjectEditor } from './ExistingProjectEditor';
 import { ErrorProfile } from './ErrorProfile';
 import { WelcomeTour } from './WelcomeTour';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { ChevronLeft, ChevronRight, Sparkles } from './ui/Icon';
-
-interface RecentProject {
-  path: string;
-  name: string;
-  lastUsedAt: string;
-  hasStandards: boolean;
-}
 
 interface WizardFlowProps {
   locale: AppLocale;
@@ -68,13 +63,15 @@ export function WizardFlow({ locale }: WizardFlowProps) {
   const { state, update, reset, isHydrated } = useSessionState(locale);
   const generation = useGeneration();
 
-  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const [recentProjects, setRecentProjects] = useState<RecentProjectWithSummary[]>([]);
   const [loadingRecent, setLoadingRecent] = useState(true);
   const [questionLoading, setQuestionLoading] = useState(false);
   const [toolLoading, setToolLoading] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
   const [savingDocuments, setSavingDocuments] = useState(false);
+  const [savingProjectInfo, setSavingProjectInfo] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [editorGenerated, setEditorGenerated] = useState(false);
   const [tourDismissed, setTourDismissed] = useState(false);
 
   const currentStep = STEPS[state.currentStep] ?? STEPS[0]!;
@@ -99,13 +96,18 @@ export function WizardFlow({ locale }: WizardFlowProps) {
     [requirementsDocument, designDocument, tasksDocument],
   );
 
+  const refreshRecentProjects = useCallback(async () => {
+    const projects = await fetchRecentProjects();
+    setRecentProjects(projects);
+    return projects;
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/projects/recent');
-        const body = (await res.json()) as { projects: RecentProject[] };
-        if (!cancelled) setRecentProjects(body.projects ?? []);
+        const projects = await fetchRecentProjects();
+        if (!cancelled) setRecentProjects(projects);
       } catch {
         if (!cancelled) setRecentProjects([]);
       } finally {
@@ -392,21 +394,48 @@ export function WizardFlow({ locale }: WizardFlowProps) {
       validation.hasStandards && validation.standardsPreview?.trim()
         ? validation.standardsPreview
         : null;
+    const loadedWorkspace = await loadExistingProjectWorkspace(projectPath, state.isDemoMode);
+    const loadedPatch = loadedWorkspace
+      ? buildLoadedProjectPatch(loadedWorkspace, locale)
+      : {};
+    const loadedStandards =
+      loadedPatch.standards !== undefined
+        ? loadedPatch.standards
+        : standardsPreview;
+    const loadedDocuments = loadedWorkspace?.documents ?? null;
+    const restoredDocuments =
+      loadedDocuments && Object.values(loadedDocuments).some(Boolean)
+        ? loadedDocuments
+        : loadedPatch.generatedDocuments ?? { requirements: null, design: null, tasks: null };
+    const projectMode =
+      source !== 'created' && hasRestorableProjectData(loadedWorkspace, loadedStandards, restoredDocuments)
+        ? 'edit'
+        : 'new';
+    setEditorGenerated(false);
+
     update({
+      ...loadedPatch,
       projectPath,
       projectSource: source,
-      pathValidation: { ...validation, hasStandards: Boolean(standardsPreview) },
-      standards: standardsPreview,
-      standardsSource: standardsPreview ? 'existing' : null,
+      projectMode,
+      pathValidation: { ...validation, hasStandards: Boolean(loadedStandards) },
+      standards: loadedStandards,
+      standardsSource:
+        loadedPatch.standardsSource !== undefined
+          ? loadedPatch.standardsSource
+          : loadedStandards
+            ? 'existing'
+            : null,
+      generatedDocuments: restoredDocuments,
+      generationStatus: hasAnyDocument(restoredDocuments) ? 'completed' : 'idle',
+      apiKey: '',
+      apiKeyValid: null,
+      activeErrorProfile: null,
       currentStep: 1,
     });
     try {
-      const name = projectPath.split(/[/\\]/).filter(Boolean).pop() ?? 'Project';
-      await fetch('/api/projects/recent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: projectPath, name, hasStandards: Boolean(standardsPreview) }),
-      });
+      await registerRecentProject(projectPath, Boolean(loadedStandards), state.isDemoMode);
+      await refreshRecentProjects();
     } catch {
       // best effort
     }
@@ -432,6 +461,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
 
   const goHome = () => {
     setSaveMessage(null);
+    setEditorGenerated(false);
     reset();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -440,6 +470,13 @@ export function WizardFlow({ locale }: WizardFlowProps) {
   const activeErrorProfile = isErrorProfileData(state.activeErrorProfile)
     ? state.activeErrorProfile
     : null;
+  const isEditingExistingProject = state.projectMode === 'edit' && Boolean(state.projectPath);
+  const canGenerateInEditor = Boolean(
+    state.targetTool &&
+    state.aiProvider &&
+    state.aiModel &&
+    (state.isDemoMode || state.apiKey.trim()),
+  );
 
   return (
     <>
@@ -448,8 +485,45 @@ export function WizardFlow({ locale }: WizardFlowProps) {
         currentStepIndex={state.currentStep}
         banner={state.isDemoMode ? t('demo.banner') : undefined}
         onHome={goHome}
+        hideSteps={isEditingExistingProject}
+        customHeader={
+          isEditingExistingProject ? (
+            <header className="mb-12">
+              <p className="eyebrow mb-6">Edycja istniejącego projektu</p>
+              <h1 className="font-display text-5xl md:text-6xl text-ink leading-[0.95] tracking-tight max-w-4xl">
+                <span className="font-display-italic">Jedna</span> strona informacji
+              </h1>
+              <p className="mt-6 text-lg text-ink-muted max-w-3xl leading-relaxed">
+                Zmień zapisane informacje projektu, wygeneruj nową wersję specyfikacji i zapisz ją.
+                Poprzednie dokumenty zostaną przeniesione do old_docs.
+              </p>
+            </header>
+          ) : undefined
+        }
         footer={
-          state.currentStep > 0 ? (
+          isEditingExistingProject ? (
+            <>
+              <Button variant="ghost" iconLeft={<ChevronLeft size={14} />} onClick={goHome}>
+                Dashboard
+              </Button>
+              <Button variant="outline" onClick={() => void saveProjectInformation()} loading={savingProjectInfo}>
+                Zapisz informacje
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => void startGeneration()}
+                loading={generation.progress.status === 'generating'}
+                disabled={!canGenerateInEditor}
+              >
+                Wygeneruj nową wersję
+              </Button>
+              {editorGenerated && DOC_TYPES.every((type) => Boolean(state.generatedDocuments[type])) && (
+                <Button variant="primary" onClick={() => void saveAllDocuments()} loading={savingDocuments}>
+                  Zapisz dokumenty
+                </Button>
+              )}
+            </>
+          ) : state.currentStep > 0 ? (
             <>
               <Button variant="ghost" iconLeft={<ChevronLeft size={14} />} onClick={goBack}>
                 {t('common.back')}
@@ -486,7 +560,30 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           </div>
         )}
 
-        {currentStep.id === 'project' && (
+        {isEditingExistingProject && (
+          <ExistingProjectEditor
+            state={state}
+            locale={locale}
+            progress={generation.progress}
+            documents={state.generatedDocuments}
+            generationDocuments={generation.documents}
+            saveMessage={saveMessage}
+            generatedInEditor={editorGenerated}
+            savingInfo={savingProjectInfo}
+            savingDocuments={savingDocuments}
+            onUpdate={update}
+            onAnswerChange={upsertAnswer}
+            onQuestionTextChange={changeQuestionText}
+            onAddInformation={addCustomInformation}
+            onRemoveInformation={removeQuestionAndAnswer}
+            onGenerate={() => void startGeneration()}
+            onSaveInfo={() => void saveProjectInformation()}
+            onSaveDocuments={() => void saveAllDocuments()}
+            onOpenTutorial={(provider) => update({ tutorialOpenedFor: provider })}
+          />
+        )}
+
+        {!isEditingExistingProject && currentStep.id === 'project' && (
           <ProjectPicker
             recentProjects={recentProjects}
             loadingRecent={loadingRecent}
@@ -494,14 +591,14 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           />
         )}
 
-        {currentStep.id === 'description' && (
+        {!isEditingExistingProject && currentStep.id === 'description' && (
           <ProjectDescriptionInput
             value={state.projectDescription}
             onChange={(value) => update({ projectDescription: value })}
           />
         )}
 
-        {currentStep.id === 'questions' && (
+        {!isEditingExistingProject && currentStep.id === 'questions' && (
           <QuestionsStep
             state={state}
             loading={questionLoading}
@@ -518,7 +615,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           />
         )}
 
-        {currentStep.id === 'tool' && (
+        {!isEditingExistingProject && currentStep.id === 'tool' && (
           <div className="space-y-5">
             {toolLoading && <Badge tone="accent">Dobieram rekomendację...</Badge>}
             <ToolSelector
@@ -535,7 +632,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           </div>
         )}
 
-        {currentStep.id === 'model' && (
+        {!isEditingExistingProject && currentStep.id === 'model' && (
           <div className="space-y-6">
             {modelLoading && <Badge tone="accent">Analizuję dobry model dla tej specyfikacji...</Badge>}
             <ModelSelector
@@ -556,7 +653,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           </div>
         )}
 
-        {currentStep.id === 'standards' && (
+        {!isEditingExistingProject && currentStep.id === 'standards' && (
           <StandardsGenerator
             locale={locale}
             existingStandards={state.standards?.trim() ? state.standards : null}
@@ -581,7 +678,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           />
         )}
 
-        {currentStep.id === 'generate' && (
+        {!isEditingExistingProject && currentStep.id === 'generate' && (
           <GenerateStep
             state={state}
             progress={generation.progress}
@@ -595,7 +692,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           />
         )}
 
-        {currentStep.id === 'preview' && (
+        {!isEditingExistingProject && currentStep.id === 'preview' && (
           <div className="space-y-5">
             {saveMessage && (
               <Card variant="inset" padding="md">
@@ -658,6 +755,40 @@ export function WizardFlow({ locale }: WizardFlowProps) {
         completenessPercent: computeCompleteness(prev.questions, answers),
       };
     });
+  }
+
+  function changeQuestionText(questionId: string, text: string) {
+    update((prev) => {
+      const exists = prev.questions.some((question) => question.id === questionId);
+      const questions = exists
+        ? prev.questions.map((question) =>
+            question.id === questionId ? { ...question, text } : question,
+          )
+        : [...prev.questions, { id: questionId, text, isRequired: false }];
+      return { questions };
+    });
+  }
+
+  function addCustomInformation() {
+    const id = `custom.${Date.now()}`;
+    update((prev) => ({
+      questions: [
+        ...prev.questions,
+        { id, text: 'Dodatkowa informacja biznesowa', isRequired: false },
+      ],
+      answers: [...prev.answers, { questionId: id, answer: '', skipped: false }],
+    }));
+  }
+
+  function removeQuestionAndAnswer(questionId: string) {
+    update((prev) => ({
+      questions: prev.questions.filter((question) => question.id !== questionId),
+      answers: prev.answers.filter((answer) => answer.questionId !== questionId),
+      completenessPercent: computeCompleteness(
+        prev.questions.filter((question) => question.id !== questionId),
+        prev.answers.filter((answer) => answer.questionId !== questionId),
+      ),
+    }));
   }
 
   function advanceQuestion() {
@@ -784,6 +915,10 @@ export function WizardFlow({ locale }: WizardFlowProps) {
         documentSuggestionIteration: 0,
         generationStatus: 'completed',
       });
+      if (state.projectMode === 'edit') {
+        setEditorGenerated(true);
+        setSaveMessage('Nowa wersja dokumentów jest gotowa. Zapisz dokumenty, żeby zastąpić pliki w docs i przenieść stare wersje do old_docs.');
+      }
     } catch (err) {
       update({ generationStatus: 'error' });
       setError('NETWORK_ERROR', (err as Error).message);
@@ -967,6 +1102,36 @@ export function WizardFlow({ locale }: WizardFlowProps) {
     });
   }
 
+  async function saveProjectInformation() {
+    setSavingProjectInfo(true);
+    setSaveMessage(null);
+    try {
+      const res = await fetch('/api/projects/save-state', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(state.isDemoMode ? { 'x-demo-mode': 'true' } : {}),
+        },
+        body: JSON.stringify({
+          projectPath: state.projectPath,
+          projectState: buildProjectSnapshotPayload(state, locale, []),
+        }),
+      });
+      const body = (await res.json()) as {
+        success?: boolean;
+        error?: { message?: string };
+      };
+      if (!res.ok || !body.success) {
+        throw new Error(body.error?.message ?? 'Nie udało się zapisać informacji projektu.');
+      }
+      setSaveMessage('Informacje projektu zostały zapisane.');
+    } catch (err) {
+      setError('FILE_ACCESS', (err as Error).message);
+    } finally {
+      setSavingProjectInfo(false);
+    }
+  }
+
   async function saveAllDocuments() {
     setSavingDocuments(true);
     setSaveMessage(null);
@@ -981,12 +1146,25 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           'Content-Type': 'application/json',
           ...(state.isDemoMode ? { 'x-demo-mode': 'true' } : {}),
         },
-        body: JSON.stringify({ projectPath: state.projectPath, documents }),
+        body: JSON.stringify({
+          projectPath: state.projectPath,
+          documents,
+          archiveExisting: true,
+          projectState: buildProjectSnapshotPayload(state, locale, documents),
+        }),
       });
-      const body = (await res.json()) as { success?: boolean; savedFiles?: string[]; error?: { message?: string } };
+      const body = (await res.json()) as {
+        success?: boolean;
+        savedFiles?: string[];
+        archivedFiles?: string[];
+        error?: { message?: string };
+      };
       if (!res.ok || !body.success) {
         throw new Error(body.error?.message ?? 'Nie udało się zapisać dokumentów.');
       }
+      await registerRecentProject(state.projectPath, Boolean(state.standards?.trim()), state.isDemoMode)
+        .then(() => refreshRecentProjects())
+        .catch(() => undefined);
       setSaveMessage(null);
       reset();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1300,6 +1478,159 @@ function dedupeSuggestions(suggestions: DocumentSuggestion[]): DocumentSuggestio
 
 function getStarterModel() {
   return getModelConfig(STARTER_MODEL_ID) ?? MODEL_CATALOG[0]!;
+}
+
+async function loadExistingProjectWorkspace(
+  projectPath: string,
+  demo: boolean,
+): Promise<LoadedProjectWorkspace | null> {
+  try {
+    const res = await fetch('/api/projects/load', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(demo ? { 'x-demo-mode': 'true' } : {}),
+      },
+      body: JSON.stringify({ projectPath }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as LoadedProjectWorkspace;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRecentProjects(): Promise<RecentProjectWithSummary[]> {
+  const res = await fetch('/api/projects/recent');
+  if (!res.ok) throw new Error('Nie udało się pobrać ostatnich projektów.');
+  const body = (await res.json()) as { projects?: RecentProjectWithSummary[] };
+  return body.projects ?? [];
+}
+
+async function registerRecentProject(
+  projectPath: string,
+  hasStandards: boolean,
+  demo: boolean,
+): Promise<void> {
+  if (demo || !projectPath.trim()) return;
+  const name = projectPath.split(/[/\\]/).filter(Boolean).pop() ?? 'Project';
+  const res = await fetch('/api/projects/recent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: projectPath, name, hasStandards }),
+  });
+  if (!res.ok) throw new Error('Nie udało się zapisać projektu w ostatnich.');
+}
+
+function buildLoadedProjectPatch(
+  workspace: LoadedProjectWorkspace,
+  locale: AppLocale,
+): Partial<SessionState> {
+  const snapshot = workspace.projectState;
+  const documents = hasAnyDocument(workspace.documents)
+    ? workspace.documents
+    : snapshot?.generatedDocuments ?? { requirements: null, design: null, tasks: null };
+  const standards =
+    workspace.standards ??
+    snapshot?.standards ??
+    null;
+
+  if (!snapshot) {
+    return {
+      standards,
+      standardsSource: standards ? 'existing' : null,
+      generatedDocuments: documents,
+      documentHistory: { requirements: [], design: [], tasks: [] },
+      documentSuggestions: [],
+      handledDocumentSuggestionKeys: [],
+      documentSuggestionStatus: 'idle',
+      documentSuggestionReviewKey: null,
+      documentSuggestionIteration: 0,
+      generationStatus: hasAnyDocument(documents) ? 'completed' : 'idle',
+    };
+  }
+
+  return {
+    projectDescription: snapshot.projectDescription,
+    questions: snapshot.questions,
+    answers: snapshot.answers,
+    activeQuestionIndex: 0,
+    completenessPercent: computeCompleteness(snapshot.questions, snapshot.answers),
+    targetTool: snapshot.targetTool,
+    toolRecommendation: snapshot.toolRecommendation,
+    aiProvider: snapshot.aiProvider,
+    aiModel: snapshot.aiModel,
+    modelRecommendation: snapshot.modelRecommendation,
+    standards,
+    standardsSource: snapshot.standardsSource ?? (standards ? 'existing' : null),
+    standardsGeneration: snapshot.standardsGeneration,
+    generatedDocuments: documents,
+    documentHistory: snapshot.documentHistory,
+    documentSuggestions: [],
+    handledDocumentSuggestionKeys: snapshot.handledDocumentSuggestionKeys,
+    documentSuggestionStatus: 'idle',
+    documentSuggestionReviewKey: null,
+    documentSuggestionIteration: snapshot.documentSuggestionIteration,
+    locale,
+    generationStatus: hasAnyDocument(documents) ? 'completed' : 'idle',
+  };
+}
+
+function buildProjectSnapshotPayload(
+  state: SessionState,
+  locale: AppLocale,
+  documents: Array<{ filename: string; content: string }>,
+): ProjectSnapshot {
+  const generatedDocuments = { ...state.generatedDocuments };
+  for (const doc of documents) {
+    const type = docTypeFromFilename(doc.filename);
+    if (type) generatedDocuments[type] = doc.content;
+  }
+
+  return {
+    schemaVersion: 1,
+    updatedAt: new Date().toISOString(),
+    locale,
+    projectDescription: state.projectDescription,
+    questions: state.questions,
+    answers: state.answers,
+    targetTool: state.targetTool,
+    toolRecommendation: state.toolRecommendation,
+    aiProvider: state.aiProvider,
+    aiModel: state.aiModel,
+    modelRecommendation: state.modelRecommendation,
+    standards: state.standards,
+    standardsSource: state.standardsSource,
+    ...(state.standardsGeneration ? { standardsGeneration: state.standardsGeneration } : {}),
+    generatedDocuments,
+    documentHistory: state.documentHistory,
+    handledDocumentSuggestionKeys: state.handledDocumentSuggestionKeys,
+    documentSuggestions: state.documentSuggestions,
+    documentSuggestionIteration: state.documentSuggestionIteration ?? 0,
+  };
+}
+
+function hasAnyDocument(documents: ProjectSnapshot['generatedDocuments']): boolean {
+  return Boolean(documents.requirements || documents.design || documents.tasks);
+}
+
+function hasRestorableProjectData(
+  workspace: LoadedProjectWorkspace | null,
+  standards: string | null,
+  documents: ProjectSnapshot['generatedDocuments'],
+): boolean {
+  return Boolean(
+    workspace?.projectState ||
+    standards ||
+    hasAnyDocument(documents),
+  );
+}
+
+function docTypeFromFilename(filename: string): DocType | null {
+  if (filename === 'requirements.md') return 'requirements';
+  if (filename === 'design.md') return 'design';
+  if (filename === 'tasks.md') return 'tasks';
+  return null;
 }
 
 function isErrorProfileData(value: unknown): value is ErrorProfileData {

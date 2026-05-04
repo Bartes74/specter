@@ -63,6 +63,65 @@ describe('GET/POST /api/projects/recent', () => {
     expect(body.projects[0]!.name).toBe('X');
   });
 
+  it('GET wzbogaca ostatnie projekty o zapisane informacje z project.json', async () => {
+    const projectPath = path.join(tmpParent, 'istniejacy-projekt');
+    await fs.mkdir(path.join(projectPath, '.spec-generator'), { recursive: true });
+    await fs.mkdir(path.join(projectPath, 'docs'), { recursive: true });
+    await fs.writeFile(path.join(projectPath, 'docs', 'requirements.md'), '# Requirements', 'utf-8');
+    await fs.writeFile(path.join(projectPath, 'standards.md'), '# Standards', 'utf-8');
+    await fs.writeFile(
+      path.join(projectPath, '.spec-generator', 'project.json'),
+      JSON.stringify({
+        schemaVersion: 1,
+        updatedAt: '2026-05-04T12:00:00.000Z',
+        locale: 'pl',
+        projectDescription: 'Aplikacja biznesowa z kompletem odpowiedzi zapisanych przy tworzeniu.',
+        questions: [{ id: 'q1', text: 'Kto używa systemu?', isRequired: true }],
+        answers: [{ questionId: 'q1', answer: 'Menedżerowie zespołów', skipped: false }],
+        targetTool: 'universal',
+        toolRecommendation: null,
+        aiProvider: 'openai',
+        aiModel: 'gpt-5.4-mini',
+        modelRecommendation: null,
+        standards: '# Standards',
+        standardsSource: 'existing',
+        generatedDocuments: { requirements: '# Requirements', design: null, tasks: null },
+        documentHistory: { requirements: [], design: [], tasks: [] },
+        handledDocumentSuggestionKeys: [],
+        documentSuggestions: [],
+        documentSuggestionIteration: 0,
+      }),
+      'utf-8',
+    );
+
+    await recentRoute.POST(
+      jsonRequest('http://localhost/api/projects/recent', {
+        path: projectPath,
+        name: 'Istniejący projekt',
+        hasStandards: true,
+      }),
+    );
+
+    const get = await recentRoute.GET(new Request('http://localhost/api/projects/recent'));
+    const body = (await get.json()) as {
+      projects: Array<{
+        summary?: {
+          descriptionPreview: string | null;
+          answersCount: number;
+          targetTool: string | null;
+          aiModel: string | null;
+          documentsCount: number;
+        };
+      }>;
+    };
+
+    expect(body.projects[0]?.summary?.descriptionPreview).toContain('Aplikacja biznesowa');
+    expect(body.projects[0]?.summary?.answersCount).toBe(1);
+    expect(body.projects[0]?.summary?.targetTool).toBe('universal');
+    expect(body.projects[0]?.summary?.aiModel).toBe('gpt-5.4-mini');
+    expect(body.projects[0]?.summary?.documentsCount).toBe(1);
+  });
+
   it('w trybie demo: GET zwraca pustą listę, POST nic nie zapisuje', async () => {
     const post = await recentRoute.POST(
       jsonRequest(

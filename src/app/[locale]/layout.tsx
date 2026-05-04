@@ -40,6 +40,9 @@ export const metadata: Metadata = {
   },
   description: 'Generuj specyfikacje projektów dla narzędzi AI w prostych krokach.',
   applicationName: 'Spec Generator',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export const viewport: Viewport = {

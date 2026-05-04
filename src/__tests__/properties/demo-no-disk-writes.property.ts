@@ -16,6 +16,7 @@ import * as path from 'node:path';
 import os from 'node:os';
 import { POST as filesSavePOST } from '@/app/api/files/save/route';
 import { POST as projectsCreatePOST } from '@/app/api/projects/create/route';
+import { POST as projectsSaveStatePOST } from '@/app/api/projects/save-state/route';
 
 let tmpHome: string;
 let tmpProject: string;
@@ -68,7 +69,7 @@ async function listAllFiles(dir: string): Promise<string[]> {
 }
 
 describe('Property 21: Tryb Demo NIGDY nie zapisuje na dysk', () => {
-  it('files/save + projects/create + projects/recent w trybie demo: ZERO plików na dysku', async () => {
+  it('files/save + projects/create + projects/recent + projects/save-state w trybie demo: ZERO plików na dysku', async () => {
     const beforeProj = await listAllFiles(tmpProject);
     const beforeHome = await listAllFiles(tmpHome);
 
@@ -109,6 +110,37 @@ describe('Property 21: Tryb Demo NIGDY nie zapisuje na dysk', () => {
     );
     await recentRoute.GET(
       new Request('http://localhost/api/projects/recent', { headers: demoHeaders }),
+    );
+
+    // 4. projects/save-state
+    await projectsSaveStatePOST(
+      jsonReq(
+        'http://localhost/api/projects/save-state',
+        {
+          projectPath: tmpProject,
+          projectState: {
+            schemaVersion: 1,
+            updatedAt: '2026-05-04T12:00:00.000Z',
+            locale: 'pl',
+            projectDescription: 'Demo bez zapisu na dysk.',
+            questions: [],
+            answers: [],
+            targetTool: 'universal',
+            toolRecommendation: null,
+            aiProvider: 'openai',
+            aiModel: 'gpt-5.4-mini',
+            modelRecommendation: null,
+            standards: null,
+            standardsSource: null,
+            generatedDocuments: { requirements: null, design: null, tasks: null },
+            documentHistory: { requirements: [], design: [], tasks: [] },
+            handledDocumentSuggestionKeys: [],
+            documentSuggestions: [],
+            documentSuggestionIteration: 0,
+          },
+        },
+        demoHeaders,
+      ),
     );
 
     const afterProj = await listAllFiles(tmpProject);

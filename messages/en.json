@@ -31,6 +31,7 @@
   "projectPicker": {
     "title": "Pick a project",
     "subtitle": "Choose the folder where the generated docs will be saved",
+    "newProjectSpecification": "Specification for a new project",
     "recentProjects": "Recent projects",
     "noRecent": "You don't have any projects yet. Start by creating a new one.",
     "selectFolder": "Select folder",
