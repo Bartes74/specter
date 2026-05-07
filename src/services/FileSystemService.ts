@@ -245,6 +245,57 @@ export async function readProjectWorkspace(projectPath: string): Promise<LoadedP
 }
 
 /**
+ * Usuwa artefakty wygenerowane przez aplikację dla projektu.
+ *
+ * Bezpieczeństwo: nie usuwa całego niepustego katalogu projektu, żeby nie skasować
+ * plików użytkownika z ręcznie wskazanego folderu. Katalog projektu znika tylko,
+ * jeśli po usunięciu artefaktów aplikacji jest pusty.
+ */
+export async function deleteGeneratedProjectArtifacts(projectPath: string): Promise<string[]> {
+  const absolute = path.resolve(expandHome(projectPath));
+  if (rejectPathTraversal(absolute)) {
+    throw new Error('path.suspiciousSegment');
+  }
+
+  let projectStat: Awaited<ReturnType<typeof fs.stat>>;
+  try {
+    projectStat = await fs.stat(absolute);
+  } catch {
+    return [];
+  }
+  if (!projectStat.isDirectory()) {
+    throw new Error('path.notDirectory');
+  }
+
+  const snapshot = await readProjectSnapshot(absolute);
+  const deleted: string[] = [];
+  const generatedDocumentFiles = ['requirements.md', 'design.md', 'tasks.md'];
+
+  for (const filename of generatedDocumentFiles) {
+    const filePath = path.join(absolute, DOCS_DIRNAME, filename);
+    if (await removePath(filePath)) deleted.push(filePath);
+  }
+
+  const oldDocsPath = path.join(absolute, OLD_DOCS_DIRNAME);
+  if (await removePath(oldDocsPath)) deleted.push(oldDocsPath);
+
+  const shouldDeleteStandards = snapshot?.standardsSource === 'generated' || Boolean(snapshot?.standardsGeneration);
+  if (shouldDeleteStandards) {
+    const standardsPath = path.join(absolute, STANDARDS_FILENAME);
+    if (await removePath(standardsPath)) deleted.push(standardsPath);
+  }
+
+  const stateDir = path.join(absolute, PROJECT_STATE_DIRNAME);
+  if (await removePath(stateDir)) deleted.push(stateDir);
+
+  const docsDir = path.join(absolute, DOCS_DIRNAME);
+  if (await removeEmptyDirectory(docsDir)) deleted.push(docsDir);
+  if (await removeEmptyDirectory(absolute)) deleted.push(absolute);
+
+  return deleted;
+}
+
+/**
  * Tworzy katalog /docs jeśli nie istnieje (Wymaganie 1.10).
  */
 export async function ensureDocsDirectory(projectPath: string): Promise<string> {
@@ -357,6 +408,30 @@ async function exists(filePath: string): Promise<boolean> {
   return fs.access(filePath).then(() => true).catch(() => false);
 }
 
+async function removePath(targetPath: string): Promise<boolean> {
+  try {
+    await fs.lstat(targetPath);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw err;
+  }
+  await fs.rm(targetPath, { recursive: true, force: true });
+  return true;
+}
+
+async function removeEmptyDirectory(targetPath: string): Promise<boolean> {
+  try {
+    await fs.rmdir(targetPath);
+    return true;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT' || code === 'ENOTEMPTY' || code === 'EEXIST') {
+      return false;
+    }
+    throw err;
+  }
+}
+
 function formatArchiveTimestamp(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   return [
@@ -374,6 +449,8 @@ function normalizeProjectSnapshot(raw: ProjectSnapshotInput): ProjectSnapshot {
   return {
     ...raw,
     schemaVersion: 1,
+    currentStep: raw.currentStep ?? 0,
+    activeQuestionIndex: raw.activeQuestionIndex ?? 0,
     questions: raw.questions ?? [],
     answers: raw.answers ?? [],
     standardsGeneration: raw.standardsGeneration

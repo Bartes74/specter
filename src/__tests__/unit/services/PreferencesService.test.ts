@@ -105,6 +105,26 @@ describe('addRecentProject', () => {
   });
 });
 
+describe('removeRecentProject', () => {
+  it('usuwa projekt po znormalizowanej ścieżce', async () => {
+    await svc.addRecentProject({
+      path: '/tmp/proj-a',
+      name: 'A',
+      lastUsedAt: '2024-01-01T00:00:00.000Z',
+      hasStandards: false,
+    });
+    await svc.addRecentProject({
+      path: '/tmp/proj-b',
+      name: 'B',
+      lastUsedAt: '2024-01-02T00:00:00.000Z',
+      hasStandards: false,
+    });
+
+    const prefs = await svc.removeRecentProject('/tmp/../tmp/proj-a');
+    expect(prefs.recentProjects.map((project) => project.name)).toEqual(['B']);
+  });
+});
+
 describe('markFirstRunComplete + markTutorialViewed', () => {
   it('markFirstRunComplete jest idempotentne', async () => {
     const a = await svc.markFirstRunComplete();

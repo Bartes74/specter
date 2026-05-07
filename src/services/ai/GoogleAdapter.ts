@@ -3,7 +3,7 @@
  */
 import { GoogleGenerativeAI, type GenerativeModel, type Content } from '@google/generative-ai';
 import type { AIAdapter, AIAdapterConfig, ChatMessage, CompleteOptions } from './types';
-import { mapErrorToAdapterError } from './types';
+import { createTokenLimitError, mapErrorToAdapterError } from './types';
 
 export class GoogleAdapter implements AIAdapter {
   readonly provider = 'google' as const;
@@ -26,7 +26,9 @@ export class GoogleAdapter implements AIAdapter {
           temperature: options.temperature ?? 0.4,
         },
       });
-      return result.response.text();
+      const text = result.response.text();
+      assertGoogleFinishReason(result.response.candidates?.[0]?.finishReason, text);
+      return text;
     } catch (err) {
       throw mapErrorToAdapterError(err);
     }
@@ -48,13 +50,17 @@ export class GoogleAdapter implements AIAdapter {
         },
       });
       let full = '';
+      let finishReason: string | null | undefined;
       for await (const part of result.stream) {
+        const partFinishReason = part.candidates?.[0]?.finishReason;
+        if (partFinishReason) finishReason = partFinishReason;
         const text = part.text();
         if (text) {
           full += text;
           onChunk(text);
         }
       }
+      assertGoogleFinishReason(finishReason, full);
       return full;
     } catch (err) {
       throw mapErrorToAdapterError(err);
@@ -92,4 +98,13 @@ function mapMessages(messages: ChatMessage[]): {
     }));
 
   return { systemInstruction, contents };
+}
+
+export function assertGoogleFinishReason(
+  finishReason: string | null | undefined,
+  partialContent?: string,
+): void {
+  if (finishReason === 'MAX_TOKENS') {
+    throw createTokenLimitError(partialContent);
+  }
 }

@@ -55,10 +55,20 @@ export class AIAdapterError extends Error {
       | 'PARSE_ERROR'
       | 'UNKNOWN',
     public readonly retryable: boolean = false,
+    public readonly partialContent?: string,
   ) {
     super(message);
     this.name = 'AIAdapterError';
   }
+}
+
+export function createTokenLimitError(partialContent?: string): AIAdapterError {
+  return new AIAdapterError(
+    'Model osiągnął limit tokenów odpowiedzi. Generator automatycznie kontynuuje od ostatniego fragmentu.',
+    'TOKEN_LIMIT',
+    false,
+    partialContent,
+  );
 }
 
 /**
@@ -78,7 +88,7 @@ export function mapErrorToAdapterError(err: unknown): AIAdapterError {
     return new AIAdapterError(message, 'NETWORK_ERROR', true);
   }
   if (/context.*length|token.*limit|too.*long/i.test(message)) {
-    return new AIAdapterError(message, 'TOKEN_LIMIT', true);
+    return new AIAdapterError(message, 'TOKEN_LIMIT', false);
   }
   if (/network|timeout|ECONN|ENOTFOUND|fetch.*failed/i.test(message)) {
     return new AIAdapterError(message, 'NETWORK_ERROR', true);

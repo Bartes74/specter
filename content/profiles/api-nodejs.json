@@ -10,42 +10,86 @@
   },
   "followUpQuestions": [
     {
-      "id": "framework",
+      "id": "stack-tooling",
       "text": {
-        "pl": "Jakiego frameworka używasz? (Express, Fastify, NestJS, Hono, raw Node)",
-        "en": "Which framework? (Express, Fastify, NestJS, Hono, raw Node)"
+        "pl": "Jaki stack backendowy i wersje technologii chcesz przyjąć jako domyślne?",
+        "en": "Which backend stack and technology versions should be treated as defaults?"
+      },
+      "hint": {
+        "pl": "Np. Node.js LTS, Express/Fastify/NestJS/Hono, TypeScript, package manager, ORM/query builder, test runner.",
+        "en": "For example: Node.js LTS, Express/Fastify/NestJS/Hono, TypeScript, package manager, ORM/query builder, test runner."
       },
       "isRequired": true
     },
     {
-      "id": "database",
+      "id": "architecture-contracts",
       "text": {
-        "pl": "Jaka baza danych? (PostgreSQL, MySQL, MongoDB, Redis, brak)",
-        "en": "Which database? (PostgreSQL, MySQL, MongoDB, Redis, none)"
+        "pl": "Jakie decyzje architektoniczne i kontrakty API mają być preferowane domyślnie?",
+        "en": "Which architectural decisions and API contracts should be preferred by default?"
+      },
+      "hint": {
+        "pl": "Np. REST-first, OpenAPI, cienkie route handlery, service layer, moduły domenowe, wersjonowanie API.",
+        "en": "For example: REST-first, OpenAPI, thin route handlers, service layer, domain modules, API versioning."
       },
       "isRequired": true
     },
     {
-      "id": "auth-strategy",
+      "id": "data-integration",
       "text": {
-        "pl": "Strategia uwierzytelniania? (JWT, OAuth2, session-based, API keys)",
-        "en": "Authentication strategy? (JWT, OAuth2, session-based, API keys)"
+        "pl": "Jakie standardy dostępu do danych i integracji technicznych mają obowiązywać?",
+        "en": "Which data access and technical integration standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. PostgreSQL, transakcje, migracje, Redis/cache, kolejki, idempotencja, retry/backoff.",
+        "en": "For example: PostgreSQL, transactions, migrations, Redis/cache, queues, idempotency, retry/backoff."
       },
       "isRequired": true
     },
     {
-      "id": "expected-rps",
+      "id": "code-quality",
       "text": {
-        "pl": "Spodziewany ruch (requests/sec) w szczycie?",
-        "en": "Expected peak traffic (requests/sec)?"
+        "pl": "Jak rygorystyczne mają być standardy jakości kodu i typowania?",
+        "en": "How strict should code quality and typing standards be?"
+      },
+      "hint": {
+        "pl": "Np. TypeScript strict, walidacja Zod, brak any, spójne błędy, granice modułów, konwencje nazw.",
+        "en": "For example: TypeScript strict, Zod validation, no any, consistent errors, module boundaries, naming conventions."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "testing-policy",
+      "text": {
+        "pl": "Jakie testy mają być wymagane dla nowych endpointów i logiki backendowej?",
+        "en": "Which tests should be required for new endpoints and backend logic?"
+      },
+      "hint": {
+        "pl": "Np. unit dla usług, integration dla route handlerów, kontrakty OpenAPI, testy migracji, testy błędów.",
+        "en": "For example: unit tests for services, integration tests for route handlers, OpenAPI contracts, migration tests, error-path tests."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "dx-ci-release",
+      "text": {
+        "pl": "Jak ma wyglądać lokalny DX, CI i proces release dla API?",
+        "en": "What should local DX, CI, and release flow look like for the API?"
+      },
+      "hint": {
+        "pl": "Np. Docker Compose, seed danych, lint/typecheck/test przed merge, semantic versioning, changelog, env validation.",
+        "en": "For example: Docker Compose, seed data, lint/typecheck/test before merge, semantic versioning, changelog, env validation."
       },
       "isRequired": false
     },
     {
-      "id": "compliance",
+      "id": "operations-observability",
       "text": {
-        "pl": "Wymagana zgodność (RODO, PCI-DSS, HIPAA, SOC 2)?",
-        "en": "Required compliance (GDPR, PCI-DSS, HIPAA, SOC 2)?"
+        "pl": "Jakie standardy operacyjne, wydajnościowe i obserwowalności mają obowiązywać?",
+        "en": "Which operational, performance, and observability standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. structured logging, request IDs, metrics, tracing, health checks, rate limits, performance budgets.",
+        "en": "For example: structured logging, request IDs, metrics, tracing, health checks, rate limits, performance budgets."
       },
       "isRequired": false
     }

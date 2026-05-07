@@ -7,7 +7,7 @@
  *
  * W trybie demo używa mock-scenariusza zamiast prawdziwych wywołań AI.
  */
-import { generateDocument } from '@/services/AIService';
+import { generateDocumentRobust } from '@/services/AIService';
 import {
   parseBody,
   isDemoMode,
@@ -46,12 +46,14 @@ export async function POST(req: Request) {
   const parsed = await parseBody(req, generateSchema);
   if (parsed.error) return parsed.error;
 
-  const sse = createSSEStream();
+  const abortController = new AbortController();
+  req.signal.addEventListener('abort', () => abortController.abort(), { once: true });
+  const sse = createSSEStream({ onCancel: () => abortController.abort() });
   const demo = isDemoMode(req);
   const input = parsed.data;
 
   // Uruchom generowanie w tle (nie blokujemy zwrócenia Response)
-  void runPipeline({ sse, demo, input }).catch((err) => {
+  void runPipeline({ sse, demo, input, signal: abortController.signal }).catch((err) => {
     safeLog.error('[/api/generate] pipeline failed:', err);
   });
 
@@ -62,8 +64,9 @@ async function runPipeline(args: {
   sse: ReturnType<typeof createSSEStream>;
   demo: boolean;
   input: GenerateInput;
+  signal: AbortSignal;
 }): Promise<void> {
-  const { sse, demo, input } = args;
+  const { sse, demo, input, signal } = args;
   const send = (e: SSEEvent) => sse.send(e);
 
   const accumulated: Record<DocumentType, string> = {
@@ -74,6 +77,7 @@ async function runPipeline(args: {
 
   try {
     for (const docType of DOCUMENTS) {
+      if (signal.aborted) return;
       send({
         type: 'progress',
         step: docType,
@@ -85,13 +89,32 @@ async function runPipeline(args: {
       if (demo) {
         // Tryb demo: stream-uj fixture w kawałkach, żeby UI poczuł "produkcyjny" feel
         const fixture = DEMO_FIXTURE[input.locale][docType];
+        send({
+          type: 'section_progress',
+          document: docType,
+          sectionId: 'demo-section',
+          sectionTitle: docType,
+          index: 1,
+          total: 1,
+          status: 'generating',
+        });
         for (const chunk of streamFixture(fixture)) {
+          if (signal.aborted) return;
           full += chunk;
           send({ type: 'content', document: docType, chunk });
           await sleep(20);
         }
+        send({
+          type: 'section_progress',
+          document: docType,
+          sectionId: 'demo-section',
+          sectionTitle: docType,
+          index: 1,
+          total: 1,
+          status: 'complete',
+        });
       } else {
-        full = await generateDocument(
+        full = await generateDocumentRobust(
           {
             provider: input.aiProvider,
             modelId: input.aiModel,
@@ -115,7 +138,11 @@ async function runPipeline(args: {
                     }
                   : undefined,
           },
-          (chunk) => send({ type: 'content', document: docType, chunk }),
+          {
+            onSectionProgress: (progress) => send({ type: 'section_progress', ...progress }),
+            onSectionComplete: (document, chunk) => send({ type: 'content', document, chunk }),
+            signal,
+          },
         );
       }
 
@@ -128,6 +155,9 @@ async function runPipeline(args: {
       documents: { ...accumulated },
     });
   } catch (err) {
+    if (signal.aborted) {
+      return;
+    }
     if (err instanceof AIAdapterError) {
       send({
         type: 'error',

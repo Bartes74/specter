@@ -30,6 +30,8 @@ const projectState = {
   schemaVersion: 1,
   updatedAt: '2026-05-04T12:00:00.000Z',
   locale: 'pl',
+  currentStep: 5,
+  activeQuestionIndex: 1,
   projectDescription: 'Zmieniony opis istniejącego projektu.',
   questions: [{ id: 'q1', text: 'Kto używa systemu?', isRequired: true }],
   answers: [{ questionId: 'q1', answer: 'Dział sprzedaży', skipped: false }],
@@ -58,6 +60,9 @@ describe('POST /api/projects/save-state', () => {
 
     const raw = await fs.readFile(body.savedFile, 'utf-8');
     expect(raw).toContain('Zmieniony opis');
+    const saved = JSON.parse(raw) as typeof projectState;
+    expect(saved.currentStep).toBe(5);
+    expect(saved.activeQuestionIndex).toBe(1);
     expect(raw).not.toContain('apiKey');
   });
 

@@ -50,6 +50,8 @@ export function ExistingProjectEditor({
   onAddInformation,
   onRemoveInformation,
   onGenerate,
+  onStopGeneration,
+  onRegenerateStandards,
   onSaveInfo,
   onSaveDocuments,
   onOpenTutorial,
@@ -69,6 +71,8 @@ export function ExistingProjectEditor({
   onAddInformation: () => void;
   onRemoveInformation: (questionId: string) => void;
   onGenerate: () => void;
+  onStopGeneration: () => void;
+  onRegenerateStandards: (profile: StandardsProfile, answers: QuestionAnswer[]) => Promise<string>;
   onSaveInfo: () => void;
   onSaveDocuments: () => void;
   onOpenTutorial: (provider: AIProvider) => void;
@@ -76,6 +80,8 @@ export function ExistingProjectEditor({
   const activeProvider = state.aiProvider ?? 'openai';
   const providerModels = getProviderModels(activeProvider);
   const [standardsProfiles, setStandardsProfiles] = useState<StandardsProfile[]>([]);
+  const [standardsGenerating, setStandardsGenerating] = useState(false);
+  const [standardsError, setStandardsError] = useState<string | null>(null);
   const activeModel =
     getModelConfig(state.aiModel ?? '', providerModels) ??
     getDefaultModelForProvider(activeProvider);
@@ -83,7 +89,10 @@ export function ExistingProjectEditor({
     () => mergeQuestionsAndAnswers(state.questions, state.answers),
     [state.answers, state.questions],
   );
-  const standardsAnswers = state.standardsGeneration?.followUpAnswers ?? [];
+  const standardsAnswers = useMemo(
+    () => state.standardsGeneration?.followUpAnswers ?? [],
+    [state.standardsGeneration?.followUpAnswers],
+  );
   const standardsProfile = useMemo(
     () => standardsProfiles.find((profile) => profile.id === state.standardsGeneration?.selectedProfileId) ?? null,
     [standardsProfiles, state.standardsGeneration?.selectedProfileId],
@@ -119,16 +128,45 @@ export function ExistingProjectEditor({
     };
   }, [locale, standardsAnswers.length, state.standardsGeneration?.selectedProfileId]);
 
-  const updateStandardsAnswer = (questionId: string, answer: string, skipped: boolean) => {
+  const updateStandardsAnswer = (
+    questionId: string,
+    answer: string,
+    skipped: boolean,
+    questionText?: string,
+  ) => {
     if (!state.standardsGeneration) return;
+    const nextAnswer = {
+      questionId,
+      questionText:
+        questionText ??
+        state.standardsGeneration.followUpAnswers.find((item) => item.questionId === questionId)?.questionText,
+      answer,
+      skipped,
+    };
+    const exists = state.standardsGeneration.followUpAnswers.some((item) => item.questionId === questionId);
     onUpdate({
       standardsGeneration: {
         ...state.standardsGeneration,
-        followUpAnswers: state.standardsGeneration.followUpAnswers.map((item) =>
-          item.questionId === questionId ? { ...item, answer, skipped } : item,
-        ),
+        followUpAnswers: exists
+          ? state.standardsGeneration.followUpAnswers.map((item) =>
+              item.questionId === questionId ? nextAnswer : item,
+            )
+          : [...state.standardsGeneration.followUpAnswers, nextAnswer],
       },
     });
+  };
+
+  const regenerateStandards = async () => {
+    if (!standardsProfile || standardsAnswers.length === 0) return;
+    setStandardsGenerating(true);
+    setStandardsError(null);
+    try {
+      await onRegenerateStandards(standardsProfile, standardsAnswers);
+    } catch (err) {
+      setStandardsError((err as Error).message);
+    } finally {
+      setStandardsGenerating(false);
+    }
   };
 
   return (
@@ -323,23 +361,15 @@ export function ExistingProjectEditor({
           title="Standardy projektu"
           subtitle="Jeśli zmieniły się decyzje biznesowe albo techniczne, możesz od razu poprawić standards.md przed regeneracją."
         />
-        <Textarea
-          value={state.standards ?? ''}
-          onChange={(event) =>
-            onUpdate({
-              standards: event.target.value,
-              standardsSource: event.target.value.trim() ? state.standardsSource ?? 'existing' : 'skipped',
-            })
-          }
-          className="min-h-[260px] font-mono text-sm"
-          placeholder="Brak standardów. Możesz je dopisać tutaj albo zostawić puste."
-        />
         {standardsAnswers.length > 0 && (
-          <div className="mt-6 border-t border-rule pt-5">
+          <div>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="eyebrow mb-2">Decyzje dla standards.md</p>
+                <p className="eyebrow mb-2">Najpierw sprawdź decyzje</p>
                 <h3 className="font-display text-2xl text-ink">Pytania i odpowiedzi standardów</h3>
+                <p className="mt-1 text-sm text-ink-muted">
+                  Po zmianie tych odpowiedzi wygeneruj standards.md ponownie, zanim uruchomisz specyfikację.
+                </p>
               </div>
               <Badge tone="editorial">
                 {standardsProfile?.name ?? state.standardsGeneration?.selectedProfileId ?? 'profil'}
@@ -362,27 +392,68 @@ export function ExistingProjectEditor({
                       label="Odpowiedź / decyzja"
                       value={answer.answer}
                       onChange={(event) =>
-                        updateStandardsAnswer(answer.questionId, event.target.value, false)
+                        updateStandardsAnswer(answer.questionId, event.target.value, false, question.text)
                       }
                       className="mt-3 min-h-[110px]"
                     />
-                    <label className="mt-2 inline-flex items-center gap-2 text-sm text-ink-muted">
-                      <input
-                        type="checkbox"
-                        checked={answer.skipped}
-                        onChange={(event) =>
-                          updateStandardsAnswer(answer.questionId, answer.answer, event.target.checked)
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                      <label className="inline-flex items-center gap-2 text-sm text-ink-muted">
+                        <input
+                          type="checkbox"
+                          checked={answer.skipped}
+                          onChange={(event) =>
+                            updateStandardsAnswer(answer.questionId, answer.answer, event.target.checked, question.text)
+                          }
+                          className="h-4 w-4 accent-sienna"
+                        />
+                        Pominięto przy generowaniu standardów
+                      </label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          updateStandardsAnswer(
+                            answer.questionId,
+                            suggestedOptimalAnswer(question, locale),
+                            false,
+                            question.text,
+                          )
                         }
-                        className="h-4 w-4 accent-sienna"
-                      />
-                      Pominięto przy generowaniu standardów
-                    </label>
+                      >
+                        Nie wiem, zaproponuj optymalne rozwiązanie
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
             </div>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <Button
+                variant="primary"
+                loading={standardsGenerating}
+                disabled={!standardsProfile || standardsAnswers.length === 0}
+                onClick={() => void regenerateStandards()}
+              >
+                Wygeneruj ponownie standards.md
+              </Button>
+            </div>
+            {standardsError && <p className="mt-3 text-sm text-danger">{standardsError}</p>}
           </div>
         )}
+        <div className={standardsAnswers.length > 0 ? 'mt-6 border-t border-rule pt-5' : undefined}>
+          <p className="eyebrow mb-3">Podgląd standards.md</p>
+          <Textarea
+            value={state.standards ?? ''}
+            onChange={(event) =>
+              onUpdate({
+                standards: event.target.value,
+                standardsSource: event.target.value.trim() ? state.standardsSource ?? 'existing' : 'skipped',
+              })
+            }
+            className="min-h-[260px] font-mono text-sm"
+            placeholder="Brak standardów. Możesz je dopisać tutaj albo zostawić puste."
+          />
+        </div>
       </Card>
 
       <section className="space-y-4">
@@ -399,6 +470,7 @@ export function ExistingProjectEditor({
         </div>
         <GenerationProgress
           progress={progress}
+          onStop={onStopGeneration}
           documents={{
             requirements: generationDocuments.requirements ?? documents.requirements ?? undefined,
             design: generationDocuments.design ?? documents.design ?? undefined,
@@ -416,7 +488,7 @@ function mergeQuestionsAndAnswers(questions: Question[], answers: QuestionAnswer
     if (!byId.has(answer.questionId)) {
       byId.set(answer.questionId, {
         id: answer.questionId,
-        text: readableQuestionId(answer.questionId),
+        text: answer.questionText ?? readableQuestionId(answer.questionId),
         isRequired: false,
       });
     }
@@ -428,6 +500,12 @@ function readableQuestionId(questionId: string): string {
   if (questionId.startsWith('context.')) return 'Informacja kontekstowa';
   if (questionId.startsWith('custom.')) return 'Dodatkowa informacja';
   return questionId.replace(/[._-]+/g, ' ');
+}
+
+function suggestedOptimalAnswer(question: Question, locale: AppLocale): string {
+  return locale === 'pl'
+    ? `Nie wiem. Zaproponuj optymalne rozwiązanie dla tego projektu w kontekście pytania: "${question.text}". Uzasadnij wybór w standards.md przez konkretne standardy, domyślne decyzje i ograniczenia.`
+    : `I don't know. Propose the optimal solution for this project in the context of this question: "${question.text}". Justify the choice in standards.md with concrete standards, default decisions, and constraints.`;
 }
 
 function documentCount(documents: Documents): number {

@@ -154,6 +154,25 @@ describe('Property 8: Język w prompcie generowania', () => {
       }
     },
   );
+
+  test('buildStandardsPrompt przekazuje modelowi ID, treść pytania i odpowiedź', () => {
+    const { userPrompt } = buildStandardsPrompt(
+      'webapp-react',
+      [
+        {
+          questionId: 'stack-tooling',
+          questionText: 'Jaki stack i wersje technologii chcesz przyjąć jako domyślne?',
+          answer: 'Next.js App Router, TypeScript strict, Tailwind, Vitest.',
+          skipped: false,
+        },
+      ],
+      'pl',
+    );
+
+    expect(userPrompt).toContain('ID: stack-tooling');
+    expect(userPrompt).toContain('Pytanie: Jaki stack i wersje technologii');
+    expect(userPrompt).toContain('Odpowiedź: Next.js App Router');
+  });
 });
 
 describe('Sekwencyjne generowanie dokumentów (Property 6 — kontekst)', () => {

@@ -38,6 +38,16 @@ describe('withRetry', () => {
     expect(op).toHaveBeenCalledTimes(1);
   });
 
+  it('nie powtarza TOKEN_LIMIT, bo ponowna próba nie zwiększa budżetu odpowiedzi', async () => {
+    const op = vi.fn(async () => {
+      const e = new Error('limit') as RetryableError;
+      e.code = 'TOKEN_LIMIT';
+      throw e;
+    });
+    await expect(withRetry(op, { ...DEFAULT_RETRY_CONFIG, baseDelayMs: 1 })).rejects.toThrow('limit');
+    expect(op).toHaveBeenCalledTimes(1);
+  });
+
   it('rzuca po wyczerpaniu prób', async () => {
     const op = vi.fn(async () => {
       const e = new Error('boom') as RetryableError;

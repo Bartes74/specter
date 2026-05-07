@@ -10,42 +10,86 @@
   },
   "followUpQuestions": [
     {
-      "id": "communication",
+      "id": "stack-platform",
       "text": {
-        "pl": "Jaki sposób komunikacji? (REST, gRPC, message queue, event bus)",
-        "en": "Communication style? (REST, gRPC, message queue, event bus)"
+        "pl": "Jaki stack, platformę uruchomieniową i narzędzia chcesz przyjąć jako domyślne?",
+        "en": "Which stack, runtime platform, and tools should be treated as defaults?"
+      },
+      "hint": {
+        "pl": "Np. Kubernetes, ECS, Cloud Run, Docker, języki serwisów, API gateway, service mesh.",
+        "en": "For example: Kubernetes, ECS, Cloud Run, Docker, service languages, API gateway, service mesh."
       },
       "isRequired": true
     },
     {
-      "id": "orchestration",
+      "id": "architecture-boundaries",
       "text": {
-        "pl": "Orkiestracja? (Kubernetes, Docker Swarm, Nomad, ECS, Cloud Run)",
-        "en": "Orchestration? (Kubernetes, Docker Swarm, Nomad, ECS, Cloud Run)"
+        "pl": "Jakie zasady granic serwisów, odpowiedzialności i kontraktów mają obowiązywać?",
+        "en": "Which service boundary, ownership, and contract standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. bounded contexts, API-first, kontrakty gRPC/REST/events, ownership, wersjonowanie, kompatybilność wsteczna.",
+        "en": "For example: bounded contexts, API-first, gRPC/REST/event contracts, ownership, versioning, backward compatibility."
       },
       "isRequired": true
     },
     {
-      "id": "service-count",
+      "id": "communication-data",
       "text": {
-        "pl": "Spodziewana liczba serwisów? (małe 3-7, średnie 8-20, duże 20+)",
-        "en": "Expected number of services? (small 3-7, medium 8-20, large 20+)"
+        "pl": "Jakie wzorce komunikacji, spójności danych i integracji mają być preferowane?",
+        "en": "Which communication, data consistency, and integration patterns should be preferred?"
+      },
+      "hint": {
+        "pl": "Np. REST, gRPC, event bus, outbox, sagas, database-per-service, CQRS, idempotencja.",
+        "en": "For example: REST, gRPC, event bus, outbox, sagas, database-per-service, CQRS, idempotency."
       },
       "isRequired": true
     },
     {
-      "id": "observability",
+      "id": "code-quality",
       "text": {
-        "pl": "Stos observability? (Prometheus+Grafana, Datadog, OpenTelemetry+Jaeger, ELK)",
-        "en": "Observability stack? (Prometheus+Grafana, Datadog, OpenTelemetry+Jaeger, ELK)"
+        "pl": "Jakie standardy jakości kodu i spójności między serwisami mają obowiązywać?",
+        "en": "Which code quality and cross-service consistency standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. template serwisu, shared linting, walidacja wejścia, spójne błędy, konwencje repozytoriów i modułów.",
+        "en": "For example: service template, shared linting, input validation, consistent errors, repository and module conventions."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "testing-policy",
+      "text": {
+        "pl": "Jakie testy mają być wymagane dla serwisów i kontraktów między nimi?",
+        "en": "Which tests should be required for services and their contracts?"
+      },
+      "hint": {
+        "pl": "Np. unit, integration z zależnościami, contract tests, consumer-driven contracts, testcontainers, chaos smoke tests.",
+        "en": "For example: unit, dependency integration, contract tests, consumer-driven contracts, testcontainers, chaos smoke tests."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "dx-ci-release",
+      "text": {
+        "pl": "Jak ma wyglądać lokalny DX, CI/CD i release w systemie wielu serwisów?",
+        "en": "What should local DX, CI/CD, and release flow look like in a multi-service system?"
+      },
+      "hint": {
+        "pl": "Np. local compose/dev cluster, preview environments, niezależne deploye, canary, rollback, migracje.",
+        "en": "For example: local compose/dev cluster, preview environments, independent deploys, canary, rollback, migrations."
       },
       "isRequired": false
     },
     {
-      "id": "data-strategy",
+      "id": "operations-observability",
       "text": {
-        "pl": "Strategia danych? (database-per-service, shared DB, event sourcing, CQRS)",
-        "en": "Data strategy? (database-per-service, shared DB, event sourcing, CQRS)"
+        "pl": "Jakie standardy observability, odporności i operacji mają obowiązywać?",
+        "en": "Which observability, resilience, and operational standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. OpenTelemetry, metrics, tracing, logs, SLO, health checks, retries, circuit breakers, rate limits.",
+        "en": "For example: OpenTelemetry, metrics, tracing, logs, SLOs, health checks, retries, circuit breakers, rate limits."
       },
       "isRequired": false
     }

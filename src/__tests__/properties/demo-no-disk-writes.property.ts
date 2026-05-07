@@ -6,9 +6,9 @@
  *
  * Sprawdzamy holistycznie: dla DOWOLNEJ kombinacji wywołań API w trybie demo
  * (POST /api/files/save, POST /api/projects/create, POST /api/projects/recent,
- *  POST /api/standards/generate w trybie zapisu), liczba zapisów na dysk = 0.
+ *  POST /api/projects/save-state, POST /api/projects/delete), liczba zapisów na dysk = 0.
  *
- * Test sprawdza wszystkie 3 endpointy FS-owe + endpoint preferencji.
+ * Test sprawdza endpointy plikowe oraz preferencje, które w demo muszą być no-op.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs/promises';
@@ -17,6 +17,7 @@ import os from 'node:os';
 import { POST as filesSavePOST } from '@/app/api/files/save/route';
 import { POST as projectsCreatePOST } from '@/app/api/projects/create/route';
 import { POST as projectsSaveStatePOST } from '@/app/api/projects/save-state/route';
+import { POST as projectsDeletePOST } from '@/app/api/projects/delete/route';
 
 let tmpHome: string;
 let tmpProject: string;
@@ -69,7 +70,7 @@ async function listAllFiles(dir: string): Promise<string[]> {
 }
 
 describe('Property 21: Tryb Demo NIGDY nie zapisuje na dysk', () => {
-  it('files/save + projects/create + projects/recent + projects/save-state w trybie demo: ZERO plików na dysku', async () => {
+  it('files/save + projects/create + projects/recent + projects/save-state + projects/delete w trybie demo: ZERO plików na dysku', async () => {
     const beforeProj = await listAllFiles(tmpProject);
     const beforeHome = await listAllFiles(tmpHome);
 
@@ -139,6 +140,15 @@ describe('Property 21: Tryb Demo NIGDY nie zapisuje na dysk', () => {
             documentSuggestionIteration: 0,
           },
         },
+        demoHeaders,
+      ),
+    );
+
+    // 5. projects/delete
+    await projectsDeletePOST(
+      jsonReq(
+        'http://localhost/api/projects/delete',
+        { projectPath: tmpProject },
         demoHeaders,
       ),
     );

@@ -10,34 +10,86 @@
   },
   "followUpQuestions": [
     {
-      "id": "framework",
+      "id": "stack-tooling",
       "text": {
-        "pl": "Framework? (Electron, Tauri, Qt, .NET MAUI, native)",
-        "en": "Framework? (Electron, Tauri, Qt, .NET MAUI, native)"
+        "pl": "Jaki stack desktopowy i narzędzia build/release chcesz przyjąć jako domyślne?",
+        "en": "Which desktop stack and build/release tools should be treated as defaults?"
+      },
+      "hint": {
+        "pl": "Np. Electron, Tauri, Qt, .NET MAUI, TypeScript/Rust/C#, bundler, package manager.",
+        "en": "For example: Electron, Tauri, Qt, .NET MAUI, TypeScript/Rust/C#, bundler, package manager."
       },
       "isRequired": true
     },
     {
-      "id": "platforms",
+      "id": "architecture-defaults",
       "text": {
-        "pl": "Wspierane systemy? (macOS, Windows, Linux, wszystkie)",
-        "en": "Supported systems? (macOS, Windows, Linux, all)"
+        "pl": "Jakie decyzje architektoniczne mają obowiązywać między UI, logiką aplikacji i integracjami systemowymi?",
+        "en": "Which architectural decisions should apply between UI, application logic, and system integrations?"
+      },
+      "hint": {
+        "pl": "Np. separacja procesu głównego i rendererów, IPC, moduły domenowe, izolacja operacji plikowych i natywnych.",
+        "en": "For example: main/renderer separation, IPC, domain modules, isolation of file and native operations."
       },
       "isRequired": true
     },
     {
-      "id": "auto-update",
+      "id": "native-capabilities",
       "text": {
-        "pl": "Czy potrzebujesz auto-aktualizacji w tle?",
-        "en": "Do you need silent auto-updates?"
+        "pl": "Jakie natywne możliwości platformy i ograniczenia techniczne mają być uwzględnione w standardach?",
+        "en": "Which native platform capabilities and technical constraints should the standards account for?"
+      },
+      "hint": {
+        "pl": "Np. macOS/Windows/Linux, dostęp do plików, tray, powiadomienia, autostart, uprawnienia systemowe.",
+        "en": "For example: macOS/Windows/Linux, file access, tray, notifications, autostart, system permissions."
       },
       "isRequired": true
     },
     {
-      "id": "code-signing",
+      "id": "code-quality",
       "text": {
-        "pl": "Czy planujesz podpisywanie kodu (notaryzacja Apple, EV cert dla Windows)?",
-        "en": "Will you code-sign (Apple notarization, EV cert for Windows)?"
+        "pl": "Jak rygorystyczne mają być standardy jakości kodu, typowania i granic modułów?",
+        "en": "How strict should code quality, typing, and module boundary standards be?"
+      },
+      "hint": {
+        "pl": "Np. TypeScript/Rust/C# strict, brak any, małe moduły, walidacja IPC, konwencje nazw.",
+        "en": "For example: TypeScript/Rust/C# strict, no any, small modules, IPC validation, naming conventions."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "testing-policy",
+      "text": {
+        "pl": "Jakie testy mają być wymagane dla UI, logiki i integracji desktopowych?",
+        "en": "Which tests should be required for UI, logic, and desktop integrations?"
+      },
+      "hint": {
+        "pl": "Np. unit dla domeny, integration dla IPC, testy plików, smoke E2E, testy instalatora i aktualizacji.",
+        "en": "For example: domain unit tests, IPC integration tests, file tests, smoke E2E, installer and update tests."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "dx-ci-release",
+      "text": {
+        "pl": "Jak ma wyglądać lokalny DX, CI i proces publikacji aplikacji desktopowej?",
+        "en": "What should local DX, CI, and desktop app publishing flow look like?"
+      },
+      "hint": {
+        "pl": "Np. lint/typecheck/test przed merge, build macOS/Windows/Linux, podpisywanie, notarization, auto-update.",
+        "en": "For example: lint/typecheck/test before merge, macOS/Windows/Linux builds, code signing, notarization, auto-update."
+      },
+      "isRequired": false
+    },
+    {
+      "id": "operations-maintenance",
+      "text": {
+        "pl": "Jakie standardy utrzymania, diagnostyki i wydajności mają obowiązywać?",
+        "en": "Which maintenance, diagnostics, and performance standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. logging lokalny, raportowanie błędów, budżet pamięci, szybki start, migracje ustawień, minimalizacja zależności.",
+        "en": "For example: local logging, crash reporting, memory budget, fast startup, settings migrations, dependency minimization."
       },
       "isRequired": false
     }

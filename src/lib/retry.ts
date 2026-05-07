@@ -17,7 +17,7 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   baseDelayMs: 1000,
   maxDelayMs: 10000,
   backoffMultiplier: 2,
-  retryableErrors: ['NETWORK_ERROR', 'TOKEN_LIMIT', 'PARSE_ERROR'],
+  retryableErrors: ['NETWORK_ERROR', 'PARSE_ERROR'],
 };
 
 export interface RetryableError extends Error {

@@ -35,6 +35,8 @@ function normalizeProjectState(state: Partial<ProjectSnapshot>): ProjectSnapshot
     schemaVersion: 1,
     updatedAt: state.updatedAt ?? new Date().toISOString(),
     locale: state.locale ?? 'pl',
+    currentStep: state.currentStep ?? 0,
+    activeQuestionIndex: state.activeQuestionIndex ?? 0,
     projectDescription: state.projectDescription ?? '',
     questions: state.questions ?? [],
     answers: state.answers ?? [],

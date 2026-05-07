@@ -36,6 +36,14 @@ export const Check = (p: IconProps) => (
 export const X = (p: IconProps) => (
   <Sized {...p}><path d="M18 6L6 18M6 6l12 12" /></Sized>
 );
+export const Trash = (p: IconProps) => (
+  <Sized {...p}>
+    <path d="M4 7h16" />
+    <path d="M10 11v6M14 11v6" />
+    <path d="M6 7l1 14h10l1-14" />
+    <path d="M9 7V4h6v3" />
+  </Sized>
+);
 export const Plus = (p: IconProps) => (
   <Sized {...p}><path d="M12 5v14M5 12h14" /></Sized>
 );

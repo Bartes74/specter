@@ -2,7 +2,7 @@
  * POST /api/generate/document — regeneracja całego dokumentu albo pojedynczej sekcji.
  */
 import { z } from 'zod';
-import { generateDocument } from '@/services/AIService';
+import { generateDocumentRobust } from '@/services/AIService';
 import {
   createSSEStream,
   isDemoMode,
@@ -49,11 +49,13 @@ export async function POST(req: Request) {
   const parsed = await parseBody(req, schema);
   if (parsed.error) return parsed.error;
 
-  const sse = createSSEStream();
+  const abortController = new AbortController();
+  req.signal.addEventListener('abort', () => abortController.abort(), { once: true });
+  const sse = createSSEStream({ onCancel: () => abortController.abort() });
   const input: RegenerateInput = { ...parsed.data, mode: parsed.data.mode ?? 'all' };
   const demo = isDemoMode(req);
 
-  void run({ sse, input, demo }).catch((err) => safeLog.error('[/api/generate/document] failed:', err));
+  void run({ sse, input, demo, signal: abortController.signal }).catch((err) => safeLog.error('[/api/generate/document] failed:', err));
 
   return sse.response;
 }
@@ -62,11 +64,13 @@ async function run(args: {
   sse: ReturnType<typeof createSSEStream>;
   input: RegenerateInput;
   demo: boolean;
+  signal: AbortSignal;
 }) {
-  const { sse, input, demo } = args;
+  const { sse, input, demo, signal } = args;
   const send = (event: SSEEvent) => sse.send(event);
 
   try {
+    if (signal.aborted) return;
     send({
       type: 'progress',
       step: input.documentType,
@@ -79,10 +83,29 @@ async function run(args: {
     let full = '';
     if (demo) {
       full = makeDemoDocument(input);
+      send({
+        type: 'section_progress',
+        document: input.documentType,
+        sectionId: 'demo-section',
+        sectionTitle: input.documentType,
+        index: 1,
+        total: 1,
+        status: 'generating',
+      });
       for (let i = 0; i < full.length; i += 80) {
+        if (signal.aborted) return;
         send({ type: 'content', document: input.documentType, chunk: full.slice(i, i + 80) });
         await sleep(10);
       }
+      send({
+        type: 'section_progress',
+        document: input.documentType,
+        sectionId: 'demo-section',
+        sectionTitle: input.documentType,
+        index: 1,
+        total: 1,
+        status: 'complete',
+      });
     } else {
       const augmentedDescription = [
         input.projectDescription,
@@ -93,7 +116,7 @@ async function run(args: {
       ]
         .filter(Boolean)
         .join('\n\n');
-      full = await generateDocument(
+      full = await generateDocumentRobust(
         {
           provider: input.aiProvider,
           modelId: input.aiModel,
@@ -108,13 +131,20 @@ async function run(args: {
           locale: input.locale,
           previousDocuments: input.previousDocuments,
         },
-        (chunk) => send({ type: 'content', document: input.documentType, chunk }),
+        {
+          onSectionProgress: (progress) => send({ type: 'section_progress', ...progress }),
+          onSectionComplete: (document, chunk) => send({ type: 'content', document, chunk }),
+          signal,
+        },
       );
     }
 
     send({ type: 'document_complete', document: input.documentType, fullContent: full });
     send({ type: 'done', documents: { [input.documentType]: full } });
   } catch (err) {
+    if (signal.aborted) {
+      return;
+    }
     if (err instanceof AIAdapterError) {
       send({ type: 'error', code: err.code, message: err.message, retryable: err.retryable });
     } else {

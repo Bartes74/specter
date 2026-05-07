@@ -10,6 +10,7 @@ import {
   saveDocument,
   ensureDocsDirectory,
   saveProjectSnapshot,
+  saveStandards,
 } from '@/services/FileSystemService';
 import { parseBody, isDemoMode, errorResponse } from '@/lib/api-helpers';
 import { saveFilesSchema } from '@/lib/api-schemas';
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
       success: true,
       savedFiles: parsed.data.documents.map((d) => `[demo]/docs/${d.filename}`),
       archivedFiles: [],
+      ...(parsed.data.generatedStandards ? { savedStandardsFile: '[demo]/standards.md' } : {}),
       demo: true,
     });
   }
@@ -39,6 +41,7 @@ export async function POST(req: Request) {
 
   const savedFiles: string[] = [];
   let archivedFiles: string[] = [];
+  let savedStandardsFile: string | undefined;
   const errors: { filename: string; error: string }[] = [];
 
   if (parsed.data.archiveExisting !== false) {
@@ -65,12 +68,23 @@ export async function POST(req: Request) {
     }
   }
 
+  if (parsed.data.generatedStandards) {
+    try {
+      await saveStandards(parsed.data.projectPath, parsed.data.generatedStandards.content);
+      savedStandardsFile = `${parsed.data.projectPath}/standards.md`;
+    } catch (err) {
+      errors.push({ filename: 'standards.md', error: (err as Error).message });
+    }
+  }
+
   let projectStateFile: string | undefined;
   if (parsed.data.projectState && errors.length === 0) {
     try {
       const projectState: ProjectSnapshot = {
         ...parsed.data.projectState,
         schemaVersion: 1,
+        currentStep: parsed.data.projectState.currentStep ?? 0,
+        activeQuestionIndex: parsed.data.projectState.activeQuestionIndex ?? 0,
         questions: parsed.data.projectState.questions ?? [],
         answers: parsed.data.projectState.answers ?? [],
         documentHistory: {
@@ -102,6 +116,7 @@ export async function POST(req: Request) {
     success: errors.length === 0,
     savedFiles,
     archivedFiles,
+    ...(savedStandardsFile ? { savedStandardsFile } : {}),
     ...(projectStateFile ? { projectStateFile } : {}),
     ...(errors.length > 0 ? { errors } : {}),
   });

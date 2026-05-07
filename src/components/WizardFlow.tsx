@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSessionState } from '@/lib/useSessionState';
-import { useGeneration } from '@/lib/useGeneration';
+import { GenerationCancelledError, useGeneration } from '@/lib/useGeneration';
 import { buildStepsForLayout, STEPS, type StepId } from '@/lib/wizard-steps';
 import { validateDescription } from '@/lib/validation';
 import {
@@ -45,7 +45,7 @@ import { WelcomeTour } from './WelcomeTour';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
-import { ChevronLeft, ChevronRight, Sparkles } from './ui/Icon';
+import { ChevronLeft, ChevronRight, Sparkles, Trash } from './ui/Icon';
 
 interface WizardFlowProps {
   locale: AppLocale;
@@ -65,6 +65,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
 
   const [recentProjects, setRecentProjects] = useState<RecentProjectWithSummary[]>([]);
   const [loadingRecent, setLoadingRecent] = useState(true);
+  const [deletingProjectPath, setDeletingProjectPath] = useState<string | null>(null);
   const [questionLoading, setQuestionLoading] = useState(false);
   const [toolLoading, setToolLoading] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
@@ -73,6 +74,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [editorGenerated, setEditorGenerated] = useState(false);
   const [tourDismissed, setTourDismissed] = useState(false);
+  const lastAutosaveKeyRef = useRef<string | null>(null);
 
   const currentStep = STEPS[state.currentStep] ?? STEPS[0]!;
   const completenessPercent = computeCompleteness(state.questions, state.answers);
@@ -176,6 +178,19 @@ export function WizardFlow({ locale }: WizardFlowProps) {
       update({ activeErrorProfile: buildClientErrorProfile(code, message, locale, retryable) });
     },
     [locale, update],
+  );
+
+  const handleStandardsDraftChange = useCallback(
+    (profileId: string, answers: QuestionAnswer[]) => {
+      update((prev) => ({
+        standardsGeneration: {
+          selectedProfileId: profileId,
+          followUpAnswers: answers,
+          draftContent: prev.standardsGeneration?.draftContent ?? prev.standards ?? null,
+        },
+      }));
+    },
+    [update],
   );
 
   const loadQuestions = useCallback(
@@ -370,6 +385,26 @@ export function WizardFlow({ locale }: WizardFlowProps) {
   }, [generation.progress.status, state.generationStatus, update]);
 
   useEffect(() => {
+    if (!canAutosaveProjectState(state, isHydrated)) return;
+    const projectState = buildProjectSnapshotPayload(state, locale, []);
+    const autosaveKey = JSON.stringify({
+      projectPath: state.projectPath,
+      projectState: { ...projectState, updatedAt: '' },
+    });
+    if (lastAutosaveKeyRef.current === autosaveKey) return;
+
+    const handle = window.setTimeout(() => {
+      void postProjectState(state.projectPath, projectState, state.isDemoMode)
+        .then(() => {
+          lastAutosaveKeyRef.current = autosaveKey;
+        })
+        .catch(() => undefined);
+    }, 700);
+
+    return () => window.clearTimeout(handle);
+  }, [isHydrated, locale, state]);
+
+  useEffect(() => {
     if (currentStep.id !== 'preview') return;
     if (!state.generatedDocuments.requirements && !state.generatedDocuments.design && !state.generatedDocuments.tasks) {
       return;
@@ -407,8 +442,19 @@ export function WizardFlow({ locale }: WizardFlowProps) {
       loadedDocuments && Object.values(loadedDocuments).some(Boolean)
         ? loadedDocuments
         : loadedPatch.generatedDocuments ?? { requirements: null, design: null, tasks: null };
+    const restoredStep =
+      typeof loadedPatch.currentStep === 'number'
+        ? Math.max(1, clampStepIndex(loadedPatch.currentStep))
+        : 1;
+    const inProgressWizard =
+      source !== 'created' &&
+      Boolean(loadedWorkspace?.projectState) &&
+      !hasAnyDocument(restoredDocuments) &&
+      restoredStep < STEPS.length - 1;
     const projectMode =
-      source !== 'created' && hasRestorableProjectData(loadedWorkspace, loadedStandards, restoredDocuments)
+      source !== 'created' &&
+      !inProgressWizard &&
+      hasRestorableProjectData(loadedWorkspace, loadedStandards, restoredDocuments)
         ? 'edit'
         : 'new';
     setEditorGenerated(false);
@@ -431,13 +477,54 @@ export function WizardFlow({ locale }: WizardFlowProps) {
       apiKey: '',
       apiKeyValid: null,
       activeErrorProfile: null,
-      currentStep: 1,
+      currentStep: projectMode === 'new' ? restoredStep : 1,
     });
     try {
       await registerRecentProject(projectPath, Boolean(loadedStandards), state.isDemoMode);
       await refreshRecentProjects();
     } catch {
       // best effort
+    }
+  };
+
+  const deleteRecentProject = async (
+    project: RecentProjectWithSummary,
+    options: { afterDelete?: () => void } = {},
+  ) => {
+    if (deletingProjectPath) return;
+    const confirmed = window.confirm(
+      t('projectPicker.deleteProjectConfirm', { name: project.name, path: project.path }),
+    );
+    if (!confirmed) return;
+
+    setDeletingProjectPath(project.path);
+    update({ activeErrorProfile: null });
+    try {
+      const res = await fetch('/api/projects/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(state.isDemoMode ? { 'x-demo-mode': 'true' } : {}),
+        },
+        body: JSON.stringify({ projectPath: project.path }),
+      });
+      const body = (await res.json()) as {
+        success?: boolean;
+        error?: { message?: string };
+      };
+      if (!res.ok || !body.success) {
+        throw new Error(body.error?.message ?? t('projectPicker.deleteProjectError'));
+      }
+      try {
+        await refreshRecentProjects();
+      } catch {
+        setRecentProjects((items) => items.filter((item) => item.path !== project.path));
+      }
+      options.afterDelete?.();
+    } catch (err) {
+      setError('FILE_ACCESS', (err as Error).message);
+    } finally {
+      setDeletingProjectPath(null);
     }
   };
 
@@ -471,6 +558,7 @@ export function WizardFlow({ locale }: WizardFlowProps) {
     ? state.activeErrorProfile
     : null;
   const isEditingExistingProject = state.projectMode === 'edit' && Boolean(state.projectPath);
+  const editingProjectTitle = projectTitleFromPath(state.projectPath);
   const canGenerateInEditor = Boolean(
     state.targetTool &&
     state.aiProvider &&
@@ -490,8 +578,11 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           isEditingExistingProject ? (
             <header className="mb-12">
               <p className="eyebrow mb-6">Edycja istniejącego projektu</p>
-              <h1 className="font-display text-5xl md:text-6xl text-ink leading-[0.95] tracking-tight max-w-4xl">
-                <span className="font-display-italic">Jedna</span> strona informacji
+              <h1
+                className="font-display text-5xl md:text-6xl text-ink leading-[0.95] tracking-tight max-w-4xl break-words"
+                title={editingProjectTitle}
+              >
+                {editingProjectTitle}
               </h1>
               <p className="mt-6 text-lg text-ink-muted max-w-3xl leading-relaxed">
                 Zmień zapisane informacje projektu, wygeneruj nową wersję specyfikacji i zapisz ją.
@@ -505,6 +596,25 @@ export function WizardFlow({ locale }: WizardFlowProps) {
             <>
               <Button variant="ghost" iconLeft={<ChevronLeft size={14} />} onClick={goHome}>
                 Dashboard
+              </Button>
+              <Button
+                variant="danger"
+                iconLeft={<Trash size={14} />}
+                onClick={() =>
+                  void deleteRecentProject(
+                    {
+                      path: state.projectPath,
+                      name: editingProjectTitle,
+                      lastUsedAt: new Date().toISOString(),
+                      hasStandards: Boolean(state.standards?.trim()),
+                    },
+                    { afterDelete: goHome },
+                  )
+                }
+                loading={deletingProjectPath === state.projectPath}
+                disabled={Boolean(deletingProjectPath)}
+              >
+                Usuń projekt
               </Button>
               <Button variant="outline" onClick={() => void saveProjectInformation()} loading={savingProjectInfo}>
                 Zapisz informacje
@@ -577,6 +687,8 @@ export function WizardFlow({ locale }: WizardFlowProps) {
             onAddInformation={addCustomInformation}
             onRemoveInformation={removeQuestionAndAnswer}
             onGenerate={() => void startGeneration()}
+            onStopGeneration={stopGeneration}
+            onRegenerateStandards={(profile, answers) => generateStandardsForProfile(profile, answers)}
             onSaveInfo={() => void saveProjectInformation()}
             onSaveDocuments={() => void saveAllDocuments()}
             onOpenTutorial={(provider) => update({ tutorialOpenedFor: provider })}
@@ -587,7 +699,9 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           <ProjectPicker
             recentProjects={recentProjects}
             loadingRecent={loadingRecent}
+            deletingProjectPath={deletingProjectPath}
             onProjectReady={handleProjectReady}
+            onProjectDelete={(project) => void deleteRecentProject(project)}
           />
         )}
 
@@ -650,6 +764,25 @@ export function WizardFlow({ locale }: WizardFlowProps) {
               onApiKeyValidChange={(apiKeyValid) => update({ apiKeyValid })}
               onOpenTutorial={(provider) => update({ tutorialOpenedFor: provider })}
             />
+            {canReturnToGenerationAfterApiKey(state) && (
+              <Card variant="inset" padding="md" className="max-w-3xl">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="eyebrow mb-2">Kontynuacja</p>
+                    <p className="text-sm text-ink-muted">
+                      Wszystkie wcześniejsze informacje są zachowane. Po poprawnej walidacji klucza możesz wrócić od razu do generowania.
+                    </p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    disabled={!canUseCurrentApiKey(state)}
+                    onClick={() => update({ currentStep: 6, activeErrorProfile: null })}
+                  >
+                    Wróć do generowania
+                  </Button>
+                </div>
+              </Card>
+            )}
           </div>
         )}
 
@@ -658,6 +791,9 @@ export function WizardFlow({ locale }: WizardFlowProps) {
             locale={locale}
             existingStandards={state.standards?.trim() ? state.standards : null}
             standardsSource={state.standardsSource}
+            initialProfileId={state.standardsGeneration?.selectedProfileId ?? null}
+            initialAnswers={state.standardsGeneration?.followUpAnswers ?? []}
+            onDraftChange={handleStandardsDraftChange}
             onUseStandards={(content, source) =>
               update({ standards: content, standardsSource: source, currentStep: 6 })
             }
@@ -688,6 +824,8 @@ export function WizardFlow({ locale }: WizardFlowProps) {
               tasks: generation.documents.tasks ?? state.generatedDocuments.tasks ?? undefined,
             }}
             onStart={() => void startGeneration()}
+            onStop={stopGeneration}
+            onEditApiKey={() => update({ currentStep: 4, apiKeyValid: null, activeErrorProfile: null })}
             onContinue={() => update({ currentStep: 7 })}
           />
         )}
@@ -920,9 +1058,18 @@ export function WizardFlow({ locale }: WizardFlowProps) {
         setSaveMessage('Nowa wersja dokumentów jest gotowa. Zapisz dokumenty, żeby zastąpić pliki w docs i przenieść stare wersje do old_docs.');
       }
     } catch (err) {
+      if (err instanceof GenerationCancelledError) {
+        update({ generationStatus: 'idle' });
+        return;
+      }
       update({ generationStatus: 'error' });
       setError('NETWORK_ERROR', (err as Error).message);
     }
+  }
+
+  function stopGeneration() {
+    generation.cancelGeneration();
+    update({ generationStatus: 'idle' });
   }
 
   function changeDocument(
@@ -1106,24 +1253,12 @@ export function WizardFlow({ locale }: WizardFlowProps) {
     setSavingProjectInfo(true);
     setSaveMessage(null);
     try {
-      const res = await fetch('/api/projects/save-state', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(state.isDemoMode ? { 'x-demo-mode': 'true' } : {}),
-        },
-        body: JSON.stringify({
-          projectPath: state.projectPath,
-          projectState: buildProjectSnapshotPayload(state, locale, []),
-        }),
-      });
-      const body = (await res.json()) as {
-        success?: boolean;
-        error?: { message?: string };
-      };
-      if (!res.ok || !body.success) {
-        throw new Error(body.error?.message ?? 'Nie udało się zapisać informacji projektu.');
-      }
+      const body = await postProjectState(
+        state.projectPath,
+        buildProjectSnapshotPayload(state, locale, []),
+        state.isDemoMode,
+      );
+      if (!body.success) throw new Error('Nie udało się zapisać informacji projektu.');
       setSaveMessage('Informacje projektu zostały zapisane.');
     } catch (err) {
       setError('FILE_ACCESS', (err as Error).message);
@@ -1150,6 +1285,10 @@ export function WizardFlow({ locale }: WizardFlowProps) {
           projectPath: state.projectPath,
           documents,
           archiveExisting: true,
+          generatedStandards:
+            state.standardsSource === 'generated' && state.standards?.trim()
+              ? { content: state.standards }
+              : undefined,
           projectState: buildProjectSnapshotPayload(state, locale, documents),
         }),
       });
@@ -1341,15 +1480,21 @@ function GenerateStep({
   progress,
   documents,
   onStart,
+  onStop,
+  onEditApiKey,
   onContinue,
 }: {
   state: SessionState;
   progress: ReturnType<typeof useGeneration>['progress'];
   documents: { requirements?: string; design?: string; tasks?: string };
   onStart: () => void;
+  onStop: () => void;
+  onEditApiKey: () => void;
   onContinue: () => void;
 }) {
   const ready = DOC_TYPES.every((type) => documents[type]);
+  const apiKeyReady = canUseCurrentApiKey(state);
+  const needsApiKey = !state.isDemoMode && !apiKeyReady;
   return (
     <div className="space-y-7">
       <Card variant="inset" padding="lg" className="max-w-3xl">
@@ -1362,9 +1507,24 @@ function GenerateStep({
             <p className="mt-2 text-sm text-ink-muted">
               Powstaną pliki requirements.md, design.md i tasks.md.
             </p>
+            {needsApiKey && (
+              <p className="mt-3 text-sm text-warning">
+                Klucz API nie jest zapisany trwale. Podaj go ponownie, a wrócisz tutaj bez utraty odpowiedzi.
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
-            <Button variant="primary" onClick={onStart} loading={progress.status === 'generating'}>
+            {needsApiKey && (
+              <Button variant="outline" onClick={onEditApiKey}>
+                Podaj klucz API
+              </Button>
+            )}
+            <Button
+              variant="primary"
+              onClick={onStart}
+              loading={progress.status === 'generating'}
+              disabled={needsApiKey}
+            >
               {ready ? 'Wygeneruj ponownie' : 'Start'}
             </Button>
             {ready && (
@@ -1375,7 +1535,7 @@ function GenerateStep({
           </div>
         </div>
       </Card>
-      <GenerationProgress progress={progress} documents={documents} />
+      <GenerationProgress progress={progress} documents={documents} onStop={onStop} />
     </div>
   );
 }
@@ -1409,6 +1569,20 @@ function canAdvanceFrom(stepId: StepId, state: SessionState, completenessPercent
   return false;
 }
 
+function canUseCurrentApiKey(state: SessionState): boolean {
+  return state.isDemoMode || Boolean(state.apiKey.trim() && state.apiKeyValid === true);
+}
+
+function canReturnToGenerationAfterApiKey(state: SessionState): boolean {
+  return Boolean(
+    state.projectPath &&
+    state.targetTool &&
+    state.aiProvider &&
+    state.aiModel &&
+    state.standardsSource !== null,
+  );
+}
+
 function computeCompleteness(questions: Question[], answers: QuestionAnswer[]): number {
   if (questions.length === 0) return answers.length > 0 ? 100 : 0;
   const answered = questions.filter((question) => {
@@ -1425,21 +1599,28 @@ function buildStandardsContextAnswers(
   const contextAnswers: QuestionAnswer[] = [
     {
       questionId: 'context.projectDescription',
+      questionText: 'Opis projektu',
       answer: state.projectDescription,
       skipped: state.projectDescription.trim().length === 0,
     },
     {
       questionId: 'context.targetTool',
+      questionText: 'Wybrane narzędzie docelowe AI',
       answer: state.targetTool ?? '',
       skipped: !state.targetTool,
     },
     {
       questionId: 'context.aiModel',
+      questionText: 'Wybrany model AI',
       answer: state.aiModel ?? '',
       skipped: !state.aiModel,
     },
     ...state.answers.map((answer) => ({
       questionId: `context.question.${answer.questionId}`,
+      questionText:
+        answer.questionText ??
+        state.questions.find((question) => question.id === answer.questionId)?.text ??
+        answer.questionId,
       answer: answer.answer,
       skipped: answer.skipped,
     })),
@@ -1554,7 +1735,7 @@ function buildLoadedProjectPatch(
     projectDescription: snapshot.projectDescription,
     questions: snapshot.questions,
     answers: snapshot.answers,
-    activeQuestionIndex: 0,
+    activeQuestionIndex: clampQuestionIndex(snapshot.activeQuestionIndex, snapshot.questions.length),
     completenessPercent: computeCompleteness(snapshot.questions, snapshot.answers),
     targetTool: snapshot.targetTool,
     toolRecommendation: snapshot.toolRecommendation,
@@ -1571,6 +1752,7 @@ function buildLoadedProjectPatch(
     documentSuggestionStatus: 'idle',
     documentSuggestionReviewKey: null,
     documentSuggestionIteration: snapshot.documentSuggestionIteration,
+    currentStep: clampStepIndex(snapshot.currentStep),
     locale,
     generationStatus: hasAnyDocument(documents) ? 'completed' : 'idle',
   };
@@ -1591,6 +1773,8 @@ function buildProjectSnapshotPayload(
     schemaVersion: 1,
     updatedAt: new Date().toISOString(),
     locale,
+    currentStep: state.currentStep,
+    activeQuestionIndex: state.activeQuestionIndex,
     projectDescription: state.projectDescription,
     questions: state.questions,
     answers: state.answers,
@@ -1612,6 +1796,55 @@ function buildProjectSnapshotPayload(
 
 function hasAnyDocument(documents: ProjectSnapshot['generatedDocuments']): boolean {
   return Boolean(documents.requirements || documents.design || documents.tasks);
+}
+
+function projectTitleFromPath(projectPath: string): string {
+  return projectPath.split(/[/\\]/).filter(Boolean).pop() ?? 'Projekt';
+}
+
+function canAutosaveProjectState(state: SessionState, isHydrated: boolean): boolean {
+  return Boolean(
+    isHydrated &&
+    !state.isDemoMode &&
+    state.projectPath.trim() &&
+    state.pathValidation?.valid &&
+    state.generationStatus !== 'generating',
+  );
+}
+
+async function postProjectState(
+  projectPath: string,
+  projectState: ProjectSnapshot,
+  demo: boolean,
+): Promise<{ success?: boolean; savedFile?: string; demo?: boolean }> {
+  const res = await fetch('/api/projects/save-state', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(demo ? { 'x-demo-mode': 'true' } : {}),
+    },
+    body: JSON.stringify({ projectPath, projectState }),
+  });
+  const body = (await res.json()) as {
+    success?: boolean;
+    savedFile?: string;
+    demo?: boolean;
+    error?: { message?: string };
+  };
+  if (!res.ok || !body.success) {
+    throw new Error(body.error?.message ?? 'Nie udało się zapisać stanu projektu.');
+  }
+  return body;
+}
+
+function clampStepIndex(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(STEPS.length - 1, Math.floor(value)));
+}
+
+function clampQuestionIndex(value: number, questionCount: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(Math.max(0, questionCount), Math.floor(value)));
 }
 
 function hasRestorableProjectData(

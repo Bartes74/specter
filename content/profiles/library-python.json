@@ -10,42 +10,86 @@
   },
   "followUpQuestions": [
     {
-      "id": "python-version",
+      "id": "stack-packaging",
       "text": {
-        "pl": "Minimalna wymagana wersja Pythona? (3.9, 3.10, 3.11, 3.12)",
-        "en": "Minimum required Python version? (3.9, 3.10, 3.11, 3.12)"
+        "pl": "Jaki stack Pythonowy, minimalne wersje i narzędzia pakowania chcesz przyjąć jako domyślne?",
+        "en": "Which Python stack, minimum versions, and packaging tools should be treated as defaults?"
+      },
+      "hint": {
+        "pl": "Np. Python 3.10+, pyproject.toml, hatch/poetry/uv/setuptools, src layout, ruff, mypy/pyright.",
+        "en": "For example: Python 3.10+, pyproject.toml, hatch/poetry/uv/setuptools, src layout, ruff, mypy/pyright."
       },
       "isRequired": true
     },
     {
-      "id": "license",
+      "id": "api-design",
       "text": {
-        "pl": "Jaka licencja? (MIT, Apache 2.0, GPL-3, BSD-3, inna)",
-        "en": "Which license? (MIT, Apache 2.0, GPL-3, BSD-3, other)"
+        "pl": "Jakie standardy projektowania publicznego API biblioteki mają obowiązywać?",
+        "en": "Which public API design standards should apply to the library?"
+      },
+      "hint": {
+        "pl": "Np. stabilne importy, semver, jawne wyjątki, małe moduły, backwards compatibility, deprecation policy.",
+        "en": "For example: stable imports, semver, explicit exceptions, small modules, backwards compatibility, deprecation policy."
       },
       "isRequired": true
     },
     {
-      "id": "packaging",
+      "id": "typing-code-quality",
       "text": {
-        "pl": "Sposób pakowania? (poetry, hatch, setuptools, uv)",
-        "en": "Packaging tool? (poetry, hatch, setuptools, uv)"
+        "pl": "Jak rygorystyczne mają być standardy typowania, lintingu i jakości kodu?",
+        "en": "How strict should typing, linting, and code quality standards be?"
+      },
+      "hint": {
+        "pl": "Np. pełne type hints, mypy strict, ruff, brak dynamicznych skrótów, czytelne błędy, docstringi publicznych API.",
+        "en": "For example: full type hints, mypy strict, ruff, no dynamic shortcuts, clear errors, docstrings for public APIs."
       },
       "isRequired": true
     },
     {
-      "id": "type-hints",
+      "id": "testing-compatibility",
       "text": {
-        "pl": "Czy używasz type hints (PEP 484)?",
-        "en": "Are you using type hints (PEP 484)?"
+        "pl": "Jakie testy i macierze kompatybilności mają być wymagane?",
+        "en": "Which tests and compatibility matrices should be required?"
+      },
+      "hint": {
+        "pl": "Np. pytest, property tests, testy CLI, testy błędów, Python 3.10–3.13, Windows/macOS/Linux.",
+        "en": "For example: pytest, property tests, CLI tests, error-path tests, Python 3.10–3.13, Windows/macOS/Linux."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "docs-examples",
+      "text": {
+        "pl": "Jakie standardy dokumentacji, przykładów i onboardingu deweloperów mają obowiązywać?",
+        "en": "Which documentation, examples, and developer onboarding standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. README quickstart, API reference, changelog, przykłady, docstringi, docs build w CI.",
+        "en": "For example: README quickstart, API reference, changelog, examples, docstrings, docs build in CI."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "dx-ci-release",
+      "text": {
+        "pl": "Jak ma wyglądać lokalny DX, CI i proces publikacji pakietu?",
+        "en": "What should local DX, CI, and package publishing flow look like?"
+      },
+      "hint": {
+        "pl": "Np. uv sync, pre-commit, lint/typecheck/test przed merge, build wheels/sdist, trusted publishing do PyPI.",
+        "en": "For example: uv sync, pre-commit, lint/typecheck/test before merge, build wheels/sdist, trusted publishing to PyPI."
       },
       "isRequired": false
     },
     {
-      "id": "release-cadence",
+      "id": "maintenance-policy",
       "text": {
-        "pl": "Planowana częstotliwość wydań? (continuous, monthly, quarterly)",
-        "en": "Planned release cadence? (continuous, monthly, quarterly)"
+        "pl": "Jakie standardy utrzymania, zależności i wydań mają obowiązywać?",
+        "en": "Which maintenance, dependency, and release standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. minimalne zależności, zakres wsparcia wersji, security updates, release cadence, kompatybilność wsteczna.",
+        "en": "For example: minimal dependencies, supported version range, security updates, release cadence, backward compatibility."
       },
       "isRequired": false
     }

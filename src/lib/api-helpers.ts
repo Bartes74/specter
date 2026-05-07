@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import type { z } from 'zod';
 import { sanitizeLogs } from './security';
+import type { SectionProgressStatus } from '@/services/SpecGenerationService';
 
 /**
  * Nagłówek wysyłany przez klienta gdy wizard działa w trybie demo.
@@ -64,6 +65,15 @@ export async function parseBody<T>(
 export type SSEEvent =
   | { type: 'progress'; step: string; message: string }
   | {
+      type: 'section_progress';
+      document: 'requirements' | 'design' | 'tasks';
+      sectionId: string;
+      sectionTitle: string;
+      index: number;
+      total: number;
+      status: SectionProgressStatus;
+    }
+  | {
       type: 'content';
       document: 'requirements' | 'design' | 'tasks' | 'standards';
       chunk: string;
@@ -86,7 +96,7 @@ export interface SSEStream {
  * Tworzy odpowiedź SSE zwracającą Response oraz bramkę do wysyłania eventów.
  * Klient czyta przez `EventSource` lub `fetch + ReadableStream`.
  */
-export function createSSEStream(): SSEStream {
+export function createSSEStream(options: { onCancel?: () => void } = {}): SSEStream {
   let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null;
   const encoder = new TextEncoder();
   let closed = false;
@@ -97,6 +107,7 @@ export function createSSEStream(): SSEStream {
     },
     cancel() {
       closed = true;
+      options.onCancel?.();
     },
   });
 
@@ -143,6 +154,13 @@ function sanitizeEvent(event: SSEEvent): SSEEvent {
   }
   if (event.type === 'progress') {
     return { ...event, message: sanitizeLogs(event.message) };
+  }
+  if (event.type === 'section_progress') {
+    return {
+      ...event,
+      sectionId: sanitizeLogs(event.sectionId),
+      sectionTitle: sanitizeLogs(event.sectionTitle),
+    };
   }
   if (event.type === 'error') {
     return { ...event, message: sanitizeLogs(event.message) };

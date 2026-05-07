@@ -24,11 +24,21 @@ import { AnthropicAdapter } from './ai/AnthropicAdapter';
 import { GoogleAdapter } from './ai/GoogleAdapter';
 import { GithubModelsAdapter } from './ai/GithubModelsAdapter';
 import type { AIAdapter, ChatMessage } from './ai/types';
+import {
+  generateRobustDocument as generateRobustDocumentWithAdapter,
+  type RobustDocumentCallbacks,
+} from './SpecGenerationService';
 import { withRetry } from '@/lib/retry';
 import { safeLog } from '@/lib/security';
+import { getModelConfig } from '@/types/models';
 
 export const QUESTION_MIN = 3;
 export const QUESTION_MAX = 10;
+const DOCUMENT_OUTPUT_TOKEN_TARGET = 24_000;
+const STANDARDS_OUTPUT_TOKEN_TARGET = 16_000;
+const MANIFEST_OUTPUT_TOKEN_TARGET = 4_000;
+const SECTION_OUTPUT_TOKEN_TARGET = 8_000;
+const REPAIR_OUTPUT_TOKEN_TARGET = 10_000;
 
 export interface AIServiceConfig {
   provider: AIProvider;
@@ -92,10 +102,46 @@ export async function generateDocument(
     { role: 'user', content: userPrompt },
   ];
   return withRetry(
-    () => adapter.completeStream(messages, onChunk, { temperature: 0.4, maxTokens: 8000 }),
+    () =>
+      adapter.completeStream(messages, onChunk, {
+        temperature: 0.4,
+        maxTokens: outputTokenBudget(config.modelId, DOCUMENT_OUTPUT_TOKEN_TARGET),
+      }),
     undefined,
     (attempt, err) => safeLog.warn(`AI ${documentType} retry ${attempt}:`, err.message),
   );
+}
+
+/**
+ * Generuje dokument odpornie na limit odpowiedzi modelu:
+ * manifest → sekcje → automatyczna kontynuacja → walidacja → składanie.
+ */
+export async function generateDocumentRobust(
+  config: AIServiceConfig,
+  documentType: DocumentType,
+  context: BuildContext,
+  callbacks: RobustDocumentCallbacks & { signal?: AbortSignal } = {},
+): Promise<string> {
+  const adapter = makeAdapter(config);
+  const { signal, ...robustCallbacks } = callbacks;
+  return generateRobustDocumentWithAdapter(adapter, documentType, context, {
+    ...robustCallbacks,
+    manifestOptions: {
+      temperature: 0.2,
+      maxTokens: outputTokenBudget(config.modelId, MANIFEST_OUTPUT_TOKEN_TARGET),
+      signal,
+    },
+    sectionOptions: {
+      temperature: 0.4,
+      maxTokens: outputTokenBudget(config.modelId, SECTION_OUTPUT_TOKEN_TARGET),
+      signal,
+    },
+    repairOptions: {
+      temperature: 0.2,
+      maxTokens: outputTokenBudget(config.modelId, REPAIR_OUTPUT_TOKEN_TARGET),
+      signal,
+    },
+  });
 }
 
 /**
@@ -115,7 +161,11 @@ export async function generateStandards(
     { role: 'user', content: userPrompt },
   ];
   return withRetry(
-    () => adapter.completeStream(messages, onChunk, { temperature: 0.5, maxTokens: 6000 }),
+    () =>
+      adapter.completeStream(messages, onChunk, {
+        temperature: 0.5,
+        maxTokens: outputTokenBudget(config.modelId, STANDARDS_OUTPUT_TOKEN_TARGET),
+      }),
     undefined,
     (attempt, err) => safeLog.warn(`AI standards retry ${attempt}:`, err.message),
   );
@@ -127,6 +177,11 @@ export async function generateStandards(
 export async function validateApiKey(config: AIServiceConfig): Promise<boolean> {
   const adapter = makeAdapter(config);
   return adapter.validateApiKey();
+}
+
+function outputTokenBudget(modelId: string, target: number): number {
+  const maxOutputTokens = getModelConfig(modelId)?.maxOutputTokens;
+  return maxOutputTokens ? Math.min(target, maxOutputTokens) : target;
 }
 
 // --- Helpery: parsowanie i przycinanie pytań ---

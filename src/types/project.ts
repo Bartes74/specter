@@ -13,6 +13,8 @@ export interface ProjectSnapshot {
   schemaVersion: 1;
   updatedAt: string;
   locale: AppLocale;
+  currentStep: number;
+  activeQuestionIndex: number;
   projectDescription: string;
   questions: Question[];
   answers: QuestionAnswer[];

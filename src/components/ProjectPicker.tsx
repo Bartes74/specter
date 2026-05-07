@@ -5,34 +5,36 @@ import { useTranslations } from 'next-intl';
 import { Card, CardHeader } from './ui/Card';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
-import { Badge } from './ui/Badge';
 import {
   Folder,
   FolderPlus,
   Upload,
   ChevronRight,
   AlertCircle,
-  FileText,
+  Trash,
 } from './ui/Icon';
 import { cn } from '@/lib/cn';
-import { AI_PROVIDER_LABELS, type TargetTool } from '@/types/providers';
 import type { PathValidationResult, ProjectSource } from '@/types/session';
 import type { RecentProjectWithSummary } from '@/types/project';
 
 export interface ProjectPickerProps {
   recentProjects: RecentProjectWithSummary[];
   loadingRecent: boolean;
+  deletingProjectPath?: string | null;
   onProjectReady: (
     projectPath: string,
     source: 'recent' | 'picker' | 'drop' | 'created' | 'manual',
     validation: PathValidationResult,
   ) => void;
+  onProjectDelete?: (project: RecentProjectWithSummary) => void;
 }
 
 export function ProjectPicker({
   recentProjects,
   loadingRecent,
+  deletingProjectPath,
   onProjectReady,
+  onProjectDelete,
 }: ProjectPickerProps) {
   return (
     <div className="space-y-16">
@@ -42,26 +44,32 @@ export function ProjectPicker({
         index="02"
         recentProjects={recentProjects}
         loading={loadingRecent}
+        deletingProjectPath={deletingProjectPath}
         onSelect={(p) => void validateAndReport(p.path, 'recent', onProjectReady)}
+        onDelete={onProjectDelete}
       />
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────
-// Sekcja 1: Ostatnie projekty — editorial: lista z numeracją, hairline rows
+// Sekcja 2: Ostatnie projekty — editorial: lista z numeracją, hairline rows
 // ─────────────────────────────────────────────────────────
 
 function RecentProjectsSection({
   index,
   recentProjects,
   loading,
+  deletingProjectPath,
   onSelect,
+  onDelete,
 }: {
   index: string;
   recentProjects: RecentProjectWithSummary[];
   loading: boolean;
+  deletingProjectPath?: string | null;
   onSelect: (p: RecentProjectWithSummary) => void;
+  onDelete?: (p: RecentProjectWithSummary) => void;
 }) {
   const t = useTranslations();
 
@@ -87,7 +95,10 @@ function RecentProjectsSection({
               project={project}
               index={idx}
               onSelect={() => onSelect(project)}
-              standardsLabel={t('projectPicker.hasStandards')}
+              onDelete={onDelete ? () => onDelete(project) : undefined}
+              isDeleting={deletingProjectPath === project.path}
+              deleteLabel={t('projectPicker.deleteProject')}
+              deletingLabel={t('projectPicker.deletingProject')}
             />
           ))}
         </ul>
@@ -100,103 +111,105 @@ function RecentProjectRow({
   project,
   index,
   onSelect,
-  standardsLabel,
+  onDelete,
+  isDeleting,
+  deleteLabel,
+  deletingLabel,
 }: {
   project: RecentProjectWithSummary;
   index: number;
   onSelect: () => void;
-  standardsLabel: string;
+  onDelete?: () => void;
+  isDeleting: boolean;
+  deleteLabel: string;
+  deletingLabel: string;
 }) {
   const summary = project.summary;
   return (
     <li className="border-b border-rule">
-      <button
-        type="button"
-        onClick={onSelect}
+      <div
         className={cn(
-          'group w-full flex items-center gap-6 py-5 px-2 -mx-2 text-left',
+          'group -mx-2 flex items-stretch gap-2',
           'hover:bg-bg-inset/60 transition-colors duration-200 rounded-sm',
         )}
         style={{ animationDelay: `${index * 60}ms` }}
       >
-        {/* Numeracja editorial */}
-        <span
-          className="step-numeral text-3xl text-ink-subtle group-hover:text-sienna transition-colors w-12 shrink-0 text-right tabular-nums"
-          aria-hidden
+        <button
+          type="button"
+          onClick={onSelect}
+          disabled={isDeleting}
+          className="flex min-w-0 flex-1 items-center gap-6 py-5 pl-2 text-left disabled:cursor-wait disabled:opacity-60"
         >
-          {(index + 1).toString().padStart(2, '0')}
-        </span>
+          {/* Numeracja editorial */}
+          <span
+            className="step-numeral text-3xl text-ink-subtle group-hover:text-sienna transition-colors w-12 shrink-0 text-right tabular-nums"
+            aria-hidden
+          >
+            {(index + 1).toString().padStart(2, '0')}
+          </span>
 
-        {/* Treść */}
-        <div className="min-w-0 flex-1">
-          <h3 className="font-display text-2xl text-ink leading-tight tracking-tight">
-            {project.name}
-          </h3>
-          <p className="mt-1 font-mono text-xs text-ink-subtle truncate" title={project.path}>
-            {project.path}
-          </p>
-          {summary?.descriptionPreview ? (
-            <p className="mt-3 max-w-2xl text-sm text-ink-muted leading-relaxed line-clamp-2">
-              {summary.descriptionPreview}
+          {/* Treść */}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-display text-2xl text-ink leading-tight tracking-tight">
+              {project.name}
+            </h3>
+            <p className="mt-1 font-mono text-xs text-ink-subtle truncate" title={project.path}>
+              {project.path}
             </p>
-          ) : (
-            <p className="mt-3 text-sm text-ink-subtle">
-              Brak zapisanych informacji projektu. Otwórz projekt, żeby je uzupełnić.
-            </p>
-          )}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {summary?.hasProjectState && <Badge tone="success" size="sm">Dane projektu</Badge>}
-            {summary && (
-              <>
-                <Badge tone="neutral" size="sm">
-                  {summary.answersCount}/{summary.questionsCount || summary.answersCount} odpowiedzi
-                </Badge>
-                <Badge tone="neutral" size="sm">
-                  {summary.documentsCount}/3 dokumenty
-                </Badge>
-              </>
-            )}
-            {summary?.targetTool && (
-              <Badge tone="editorial" size="sm">{toolName(summary.targetTool)}</Badge>
-            )}
-            {summary?.aiModel && (
-              <Badge tone="editorial" size="sm">
-                {summary.aiProvider ? `${AI_PROVIDER_LABELS[summary.aiProvider]} · ` : ''}
-                {summary.aiModel}
-              </Badge>
+            {summary?.descriptionPreview ? (
+              <p className="mt-3 max-w-2xl text-sm text-ink-muted leading-relaxed line-clamp-2">
+                {summary.descriptionPreview}
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-ink-subtle">
+                Brak zapisanych informacji projektu. Otwórz projekt, żeby je uzupełnić.
+              </p>
             )}
           </div>
-        </div>
 
-        {/* Meta */}
-        <div className="hidden sm:flex flex-col items-end gap-1.5 shrink-0">
-          <span className="font-mono text-2xs text-ink-muted uppercase tracking-wider">
-            {formatRelativeTime(project.lastUsedAt)}
-          </span>
-          {project.hasStandards && (
-            <Badge tone="accent" size="sm" iconLeft={<FileText size={10} />}>
-              {standardsLabel}
-            </Badge>
-          )}
-          {summary?.updatedAt && (
-            <span className="font-mono text-2xs text-ink-subtle uppercase tracking-wider">
-              zapis: {formatRelativeTime(summary.updatedAt)}
+          {/* Meta */}
+          <div className="hidden sm:flex flex-col items-end gap-1.5 shrink-0">
+            <span className="font-mono text-2xs text-ink-muted uppercase tracking-wider">
+              {formatRelativeTime(project.lastUsedAt)}
             </span>
-          )}
-        </div>
+            {summary?.updatedAt && (
+              <span className="font-mono text-2xs text-ink-subtle uppercase tracking-wider">
+                zapis: {formatRelativeTime(summary.updatedAt)}
+              </span>
+            )}
+          </div>
 
-        {/* Strzałka */}
-        <ChevronRight
-          size={20}
-          className="text-ink-subtle group-hover:text-sienna group-hover:translate-x-1 transition-all duration-300 shrink-0"
-        />
-      </button>
+          {/* Strzałka */}
+          <ChevronRight
+            size={20}
+            className="text-ink-subtle group-hover:text-sienna group-hover:translate-x-1 transition-all duration-300 shrink-0"
+          />
+        </button>
+
+        {onDelete && (
+          <div className="flex items-center py-5 pr-2 shrink-0">
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              loading={isDeleting}
+              disabled={isDeleting}
+              iconLeft={<Trash size={14} />}
+              aria-label={`${deleteLabel}: ${project.name}`}
+              title={`${deleteLabel}: ${project.name}`}
+              onClick={onDelete}
+            >
+              {isDeleting ? deletingLabel : deleteLabel}
+            </Button>
+          </div>
+        )}
+      </div>
     </li>
   );
 }
 
 // ─────────────────────────────────────────────────────────
-// Sekcja 2: Wybierz folder / Nowy projekt — dwie wielkie karty
+// Sekcja 1: Wybierz folder / Nowy projekt — dwie wielkie karty
 // ─────────────────────────────────────────────────────────
 
 function FolderActionsSection({
@@ -562,14 +575,4 @@ function formatRelativeTime(iso: string): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} dni temu`;
   return date.toLocaleDateString();
-}
-
-function toolName(tool: TargetTool): string {
-  return {
-    universal: 'Uniwersalny',
-    'claude-code': 'Claude Code',
-    codex: 'Codex',
-    copilot: 'Copilot',
-    gemini: 'Gemini',
-  }[tool];
 }

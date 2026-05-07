@@ -230,7 +230,7 @@ Spec Generator to aplikacja webowa umożliwiająca nietechnicznym użytkownikom 
 
 1. WHEN Użytkownik nie ma pliku standards.md w Katalogu_Projektu, THE Aplikacja SHALL zaproponować uruchomienie Generatora_Standardów na ekranie wyboru standardów
 2. THE Generator_Standardów SHALL umożliwić Użytkownikowi wybór Profilu_Aplikacji z predefiniowanej listy (np. aplikacja webowa React/Next.js, API REST w Node.js/Python, aplikacja mobilna Flutter/React Native, biblioteka open-source, monorepo, aplikacja desktopowa, mikroserwisy)
-3. THE Generator_Standardów SHALL zadać Użytkownikowi 3–7 pytań uzupełniających dotyczących Profilu_Aplikacji (np. "Czy projekt będzie publiczny?", "Czy używasz TypeScript?", "Jaka jest wymagana zgodność z RODO/HIPAA?")
+3. THE Generator_Standardów SHALL zadać Użytkownikowi 3–7 pytań uzupełniających dotyczących wykonawczych preferencji dla Profilu_Aplikacji (np. preferowany stack, decyzje architektoniczne, biblioteki, standardy jakości kodu, testy, CI/CD, utrzymanie)
 4. WHEN Użytkownik odpowie na pytania, THE Generator_Standardów SHALL użyć Modelu_AI do wygenerowania pliku standards.md zawierającego best practices dla wybranego Profilu_Aplikacji w sekcjach: Architektura, Bezpieczeństwo, Testowanie, Jakość kodu, Dokumentacja, CI/CD, Dostępność (a11y), Wydajność
 5. THE Generator_Standardów SHALL wyświetlić podgląd wygenerowanego standards.md z możliwością edycji przed zapisaniem
 6. WHEN Użytkownik zatwierdzi standards.md, THE Aplikacja SHALL zapisać plik w Katalogu_Projektu (nie w Katalogu_Docs) i automatycznie uwzględnić go w dalszej Sesji_Generowania

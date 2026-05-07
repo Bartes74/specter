@@ -47,6 +47,26 @@ describe('POST /api/files/save', () => {
     expect(reqContent).toBe('# Wymagania');
   });
 
+  it('zapisuje wygenerowany standards.md razem z dokumentami', async () => {
+    const res = await POST(
+      makeRequest({
+        projectPath: tmpDir,
+        generatedStandards: { content: '# Standards\n\nReguły projektu.' },
+        documents: [{ filename: 'requirements.md', content: '# Wymagania' }],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      success: boolean;
+      savedStandardsFile?: string;
+    };
+    expect(body.success).toBe(true);
+    expect(body.savedStandardsFile).toBe(`${tmpDir}/standards.md`);
+    await expect(fs.readFile(path.join(tmpDir, 'standards.md'), 'utf-8'))
+      .resolves.toBe('# Standards\n\nReguły projektu.');
+  });
+
   it('archiwizuje poprzednie dokumenty do old_docs i zapisuje snapshot projektu', async () => {
     await fs.mkdir(path.join(tmpDir, 'docs'), { recursive: true });
     const oldReqPath = path.join(tmpDir, 'docs', 'requirements.md');

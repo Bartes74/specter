@@ -12,6 +12,7 @@ const documentTypeSchema = z.enum(['requirements', 'design', 'tasks']);
 
 const questionAnswerSchema = z.object({
   questionId: z.string().min(1),
+  questionText: z.string().min(1).optional(),
   answer: z.string(),
   skipped: z.boolean(),
 });
@@ -97,12 +98,21 @@ export const loadProjectSchema = z.object({
 });
 export type LoadProjectInput = z.infer<typeof loadProjectSchema>;
 
+// --- /api/projects/delete ---
+
+export const deleteProjectSchema = z.object({
+  projectPath: z.string().min(1),
+});
+export type DeleteProjectInput = z.infer<typeof deleteProjectSchema>;
+
 // --- Project snapshot stored next to project files ---
 
 export const projectSnapshotSchema = z.object({
   schemaVersion: z.literal(1).default(1),
   updatedAt: z.string().min(1),
   locale: localeSchema,
+  currentStep: z.number().int().min(0).max(20).default(0),
+  activeQuestionIndex: z.number().int().min(0).max(100).default(0),
   projectDescription: z.string().max(10_000),
   questions: z.array(questionSchema).default([]),
   answers: z.array(questionAnswerSchema).default([]),
@@ -142,6 +152,11 @@ export const saveFilesSchema = z.object({
   projectPath: z.string().min(1),
   archiveExisting: z.boolean().optional(),
   projectState: projectSnapshotSchema.optional(),
+  generatedStandards: z
+    .object({
+      content: z.string().refine((value) => value.trim().length > 0, 'standards.empty'),
+    })
+    .optional(),
   documents: z
     .array(
       z.object({

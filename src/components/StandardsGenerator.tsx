@@ -24,10 +24,16 @@ export function StandardsGenerator({
   onGenerate,
   onRegenerate,
   onSave,
+  initialProfileId,
+  initialAnswers,
+  onDraftChange,
 }: {
   locale: AppLocale;
   existingStandards?: string | null;
   standardsSource?: 'existing' | 'generated' | 'skipped' | null;
+  initialProfileId?: string | null;
+  initialAnswers?: QuestionAnswer[];
+  onDraftChange?: (profileId: string, answers: QuestionAnswer[]) => void;
   onUseStandards: (content: string, source: 'existing' | 'generated') => void;
   onSkip: () => void;
   onGenerate: (profile: StandardsProfile, answers: QuestionAnswer[]) => Promise<string>;
@@ -59,6 +65,24 @@ export function StandardsGenerator({
       .then((body) => setProfiles(body.profiles ?? []))
       .catch(() => setProfiles([]));
   }, [locale]);
+
+  useEffect(() => {
+    if (!initialProfileId || selectedProfile || profiles.length === 0) return;
+    const profile = profiles.find((item) => item.id === initialProfileId);
+    if (!profile) return;
+    const restoredAnswers = mergeProfileAnswers(profile, initialAnswers ?? []);
+    setSelectedProfile(profile);
+    setAnswers(restoredAnswers);
+    setActiveQuestion(firstUnansweredIndex(restoredAnswers));
+    if (!normalizedExistingStandards) {
+      setMode('questions');
+    }
+  }, [initialAnswers, initialProfileId, normalizedExistingStandards, profiles, selectedProfile]);
+
+  useEffect(() => {
+    if (!selectedProfile) return;
+    onDraftChange?.(selectedProfile.id, answers);
+  }, [answers, onDraftChange, selectedProfile]);
 
   useEffect(() => {
     const nextExisting =
@@ -104,11 +128,7 @@ export function StandardsGenerator({
               onClick={() => {
                 setSelectedProfile(profile);
                 setAnswers(
-                  profile.followUpQuestions.map((q) => ({
-                    questionId: q.id,
-                    answer: '',
-                    skipped: false,
-                  })),
+                  mergeProfileAnswers(profile, []),
                 );
                 setMode('questions');
               }}
@@ -181,7 +201,9 @@ export function StandardsGenerator({
               const value = event.target.value;
               setAnswers((prev) =>
                 prev.map((a) =>
-                  a.questionId === question?.id ? { ...a, answer: value, skipped: false } : a,
+                  a.questionId === question?.id
+                    ? { ...a, questionText: question?.text ?? a.questionText, answer: value, skipped: false }
+                    : a,
                 ),
               );
             }}
@@ -202,12 +224,37 @@ export function StandardsGenerator({
               variant="ghost"
               onClick={() => {
                 setAnswers((prev) =>
-                  prev.map((a) => (a.questionId === question?.id ? { ...a, skipped: true } : a)),
+                  prev.map((a) =>
+                    a.questionId === question?.id
+                      ? { ...a, questionText: question?.text ?? a.questionText, skipped: true }
+                      : a,
+                  ),
                 );
                 setActiveQuestion((v) => v + 1);
               }}
             >
               Pomiń
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!question) return;
+                setAnswers((prev) =>
+                  prev.map((a) =>
+                    a.questionId === question.id
+                      ? {
+                          ...a,
+                          questionText: question.text,
+                          answer: suggestedOptimalAnswer(question, locale),
+                          skipped: false,
+                        }
+                      : a,
+                  ),
+                );
+                setActiveQuestion((v) => v + 1);
+              }}
+            >
+              Nie wiem, zaproponuj optymalne rozwiązanie
             </Button>
             <Button variant="primary" onClick={() => setActiveQuestion((v) => v + 1)}>
               Dalej
@@ -225,12 +272,97 @@ export function StandardsGenerator({
       ? answers
       : regenerationProfile?.followUpQuestions.map((question) => ({
           questionId: question.id,
+          questionText: question.text,
           answer: '',
           skipped: false,
         })) ?? [];
 
   return (
     <div className="space-y-5">
+      {regenerationProfile && regenerationAnswers.length > 0 && (
+        <Card variant="ghost" padding="lg">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="eyebrow mb-3">Najpierw sprawdź decyzje</p>
+              <h2 className="font-display text-3xl text-ink">Pytania dla standards.md</h2>
+              <p className="mt-2 text-sm text-ink-muted">
+                Te odpowiedzi sterują tym, jak powstaje standards.md. Po zmianie odpowiedzi wygeneruj plik ponownie.
+              </p>
+            </div>
+            <Badge tone="editorial">{regenerationProfile.name}</Badge>
+          </div>
+          <div className="mt-6 space-y-5">
+            {regenerationProfile.followUpQuestions.map((question, index) => {
+              const answer = regenerationAnswers.find((item) => item.questionId === question.id) ?? {
+                questionId: question.id,
+                questionText: question.text,
+                answer: '',
+                skipped: false,
+              };
+              return (
+                <div key={question.id} className="border-t border-rule pt-5 first:border-t-0 first:pt-0">
+                  <p className="text-sm font-medium text-ink">
+                    {String(index + 1).padStart(2, '0')}. {question.text}
+                  </p>
+                  {question.hint && <p className="mt-1 text-xs text-ink-muted">{question.hint}</p>}
+                  <Textarea
+                    label="Odpowiedź / decyzja"
+                    value={answer.answer}
+                    onChange={(event) =>
+                      setAnswers((prev) =>
+                        replaceOrAppendAnswer(prev, {
+                          questionId: question.id,
+                          questionText: question.text,
+                          answer: event.target.value,
+                          skipped: false,
+                        }),
+                      )
+                    }
+                    className="mt-3 min-h-[110px]"
+                  />
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <label className="inline-flex items-center gap-2 text-sm text-ink-muted">
+                      <input
+                        type="checkbox"
+                        checked={answer.skipped}
+                        onChange={(event) =>
+                          setAnswers((prev) =>
+                            replaceOrAppendAnswer(prev, {
+                              ...answer,
+                              questionId: question.id,
+                              questionText: question.text,
+                              skipped: event.target.checked,
+                            }),
+                          )
+                        }
+                        className="h-4 w-4 accent-sienna"
+                      />
+                      Pomiń przy generowaniu standardów
+                    </label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setAnswers((prev) =>
+                          replaceOrAppendAnswer(prev, {
+                            questionId: question.id,
+                            questionText: question.text,
+                            answer: suggestedOptimalAnswer(question, locale),
+                            skipped: false,
+                          }),
+                        )
+                      }
+                    >
+                      Nie wiem, zaproponuj optymalne rozwiązanie
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       <Card variant="ghost" padding="lg">
         <p className="eyebrow mb-3">{contentSource === 'existing' ? 'Wykryte standardy' : 'Podgląd standardów'}</p>
         <Textarea
@@ -269,6 +401,19 @@ export function StandardsGenerator({
           <Button variant="ghost" onClick={() => setMode('profiles')}>
             Zmień profil
           </Button>
+          {regenerationProfile && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSelectedProfile(regenerationProfile);
+                setAnswers(regenerationAnswers);
+                setActiveQuestion(0);
+                setMode('questions');
+              }}
+            >
+              Edytuj pytania po kolei
+            </Button>
+          )}
           <Button variant="ghost" onClick={onSkip}>Pomiń</Button>
           <Button
             variant="outline"
@@ -300,4 +445,34 @@ export function StandardsGenerator({
       </Card>
     </div>
   );
+}
+
+function replaceOrAppendAnswer(answers: QuestionAnswer[], next: QuestionAnswer): QuestionAnswer[] {
+  const exists = answers.some((answer) => answer.questionId === next.questionId);
+  return exists
+    ? answers.map((answer) => (answer.questionId === next.questionId ? next : answer))
+    : [...answers, next];
+}
+
+function mergeProfileAnswers(profile: StandardsProfile, savedAnswers: QuestionAnswer[]): QuestionAnswer[] {
+  return profile.followUpQuestions.map((question) => {
+    const saved = savedAnswers.find((answer) => answer.questionId === question.id);
+    return {
+      questionId: question.id,
+      questionText: question.text,
+      answer: saved?.answer ?? '',
+      skipped: saved?.skipped ?? false,
+    };
+  });
+}
+
+function firstUnansweredIndex(answers: QuestionAnswer[]): number {
+  const index = answers.findIndex((answer) => !answer.skipped && answer.answer.trim().length === 0);
+  return index >= 0 ? index : answers.length;
+}
+
+function suggestedOptimalAnswer(question: Question, locale: AppLocale): string {
+  return locale === 'pl'
+    ? `Nie wiem. Zaproponuj optymalne rozwiązanie dla tego projektu w kontekście pytania: "${question.text}". Uzasadnij wybór w standards.md przez konkretne standardy, domyślne decyzje i ograniczenia.`
+    : `I don't know. Propose the optimal solution for this project in the context of this question: "${question.text}". Justify the choice in standards.md with concrete standards, default decisions, and constraints.`;
 }

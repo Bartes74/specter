@@ -31,6 +31,7 @@ export interface SuggestedAnswer {
 
 export interface QuestionAnswer {
   questionId: string;
+  questionText?: string;
   answer: string;
   skipped: boolean;
 }
