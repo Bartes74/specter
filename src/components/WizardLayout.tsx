@@ -24,6 +24,8 @@ export interface WizardLayoutProps {
   footer?: ReactNode;
   banner?: ReactNode;
   onHome?: () => void;
+  hideSteps?: boolean;
+  customHeader?: ReactNode;
 }
 
 /**
@@ -44,10 +46,12 @@ export function WizardLayout({
   footer,
   banner,
   onHome,
+  hideSteps = false,
+  customHeader,
 }: WizardLayoutProps) {
   const t = useTranslations('wizard');
   const totalSteps = steps.length;
-  const progressPercent = totalSteps > 0 ? ((currentStepIndex + 1) / totalSteps) * 100 : 0;
+  const progressPercent = hideSteps ? 100 : totalSteps > 0 ? ((currentStepIndex + 1) / totalSteps) * 100 : 0;
   const currentStep = steps[currentStepIndex];
 
   return (
@@ -89,8 +93,12 @@ export function WizardLayout({
       {/* ─── Body ─── */}
       <div className="flex-1">
         <div className="mx-auto max-w-[1320px] px-8 lg:px-12 py-12 md:py-20">
-          <div className="grid lg:grid-cols-[280px_1fr] gap-12 lg:gap-20">
+          <div className={cn(
+            'grid gap-12 lg:gap-20',
+            hideSteps ? 'lg:grid-cols-1' : 'lg:grid-cols-[280px_1fr]',
+          )}>
             {/* ─── Sidebar — editorial step list ─── */}
+            {!hideSteps && (
             <aside className="hidden lg:block">
               <p className="eyebrow mb-6">Spis treści</p>
               <ol className="space-y-0">
@@ -104,10 +112,11 @@ export function WizardLayout({
                 ))}
               </ol>
             </aside>
+            )}
 
             {/* ─── Content ─── */}
             <main className="min-w-0 animate-fade-in">
-              {currentStep && (
+              {customHeader !== undefined ? customHeader : currentStep && (
                 <header className="mb-12">
                   <p className="eyebrow mb-6">
                     {t('step', { current: currentStepIndex + 1, total: totalSteps })}

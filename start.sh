@@ -23,6 +23,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 mkdir -p "$PREFS_DIR"
+EXISTING_RUNNING=0
+EXISTING_PID=""
+BUILD_WAS_NEEDED=0
+SERVER_RESTART_NEEDED=0
 
 # ---------- Pomoce wizualne ----------
 say() { printf "  %s\n" "$1"; }
@@ -104,18 +108,11 @@ ok "Node.js ${NODE_VERSION_RAW}"
 if [ -f "$PID_FILE" ]; then
   EXISTING_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
   if [ -n "$EXISTING_PID" ] && kill -0 "$EXISTING_PID" 2>/dev/null; then
-    ok "Aplikacja już działa (PID ${EXISTING_PID}). Otwieram przeglądarkę..."
-    open_browser() {
-      if command -v open >/dev/null 2>&1; then open "$APP_URL"
-      elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$APP_URL" >/dev/null 2>&1
-      fi
-    }
-    open_browser || true
-    hr
-    say "Aby zatrzymać aplikację uruchom: ./stop.sh"
-    exit 0
+    EXISTING_RUNNING=1
+    ok "Aplikacja już działa (PID ${EXISTING_PID}). Sprawdzę jeszcze, czy build jest aktualny."
   else
     rm -f "$PID_FILE"
+    EXISTING_PID=""
   fi
 fi
 
@@ -161,6 +158,7 @@ needs_build() {
 }
 
 if needs_build; then
+  BUILD_WAS_NEEDED=1
   say "Buduję aplikację... (źródła zmieniły się od ostatniego uruchomienia)"
   if ! npm run build; then
     print_error_profile \
@@ -174,6 +172,33 @@ if needs_build; then
   ok "Build jest aktualny"
 else
   ok "Build jest aktualny"
+fi
+
+if [ "$EXISTING_RUNNING" -eq 1 ] && [ -f "$BUILD_STAMP" ] && [ -f "$PID_FILE" ] && [ "$BUILD_STAMP" -nt "$PID_FILE" ]; then
+  SERVER_RESTART_NEEDED=1
+  say "Build jest nowszy niż działający serwer. Serwer wymaga restartu."
+fi
+
+open_browser() {
+  if command -v open >/dev/null 2>&1; then open "$APP_URL"
+  elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$APP_URL" >/dev/null 2>&1
+  fi
+}
+
+if [ "$EXISTING_RUNNING" -eq 1 ] && [ "$BUILD_WAS_NEEDED" -eq 0 ] && [ "$SERVER_RESTART_NEEDED" -eq 0 ]; then
+  ok "Działający serwer używa aktualnego builda. Otwieram przeglądarkę..."
+  open_browser || true
+  hr
+  say "Aby zatrzymać aplikację uruchom: ./stop.sh"
+  exit 0
+fi
+
+if [ "$EXISTING_RUNNING" -eq 1 ]; then
+  say "Restartuję działający serwer, żeby użył nowego builda..."
+  screen -S spec-generator -X quit >/dev/null 2>&1 || true
+  kill "$EXISTING_PID" >/dev/null 2>&1 || true
+  rm -f "$PID_FILE"
+  sleep 0.5
 fi
 
 # ---------- 5. Uruchom serwer ----------
@@ -233,14 +258,9 @@ while [ "$WAITED" -lt "$HEALTH_TIMEOUT_SECONDS" ]; do
       WAITED=$((WAITED + 1))
       continue
     fi
-    print_error_profile \
-      "Proces serwera zakończył się przed osiągnięciem stanu gotowości." \
-      "Aplikacja nie uruchomi się dopóki problem nie zostanie naprawiony." \
-      "    1. Sprawdź log: ${LOG_FILE}
-    2. Spróbuj uruchomić ręcznie: npm start
-    3. Jeśli problem powtarza się, zgłoś błąd dołączając log"
-    rm -f "$PID_FILE"
-    exit 1
+    sleep 1
+    WAITED=$((WAITED + 1))
+    continue
   fi
   sleep 1
   WAITED=$((WAITED + 1))

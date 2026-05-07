@@ -27,8 +27,18 @@ const VALID_BODY = {
   profileId: 'webapp-react',
   profileName: 'Aplikacja webowa (React/Next.js)',
   followUpAnswers: [
-    { questionId: 'routing', answer: 'Next.js App Router', skipped: false },
-    { questionId: 'state-management', answer: 'React state', skipped: false },
+    {
+      questionId: 'stack-tooling',
+      questionText: 'Jaki stack i wersje technologii chcesz przyjąć jako domyślne?',
+      answer: 'Next.js App Router, TypeScript strict, Tailwind, Vitest.',
+      skipped: false,
+    },
+    {
+      questionId: 'library-patterns',
+      questionText: 'Jakie biblioteki i wzorce są dozwolone lub preferowane?',
+      answer: 'TanStack Query do danych serwerowych i Zod do walidacji.',
+      skipped: false,
+    },
   ],
   locale: 'pl',
   aiProvider: 'openai',

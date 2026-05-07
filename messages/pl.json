@@ -31,6 +31,7 @@
   "projectPicker": {
     "title": "Wybierz projekt",
     "subtitle": "Wskaż folder, w którym zapiszemy wygenerowane dokumenty",
+    "newProjectSpecification": "Specyfikacja dla nowego projektu",
     "recentProjects": "Ostatnie projekty",
     "noRecent": "Nie masz jeszcze żadnych projektów. Zacznij od utworzenia nowego.",
     "selectFolder": "Wybierz folder",
@@ -46,7 +47,11 @@
     "pathNotWritable": "Brak uprawnień do zapisu w tym folderze",
     "pathOk": "Folder gotowy",
     "createThisFolder": "Utwórz ten folder",
-    "hasStandards": "Wykryto plik standards.md w projekcie"
+    "hasStandards": "Wykryto plik standards.md w projekcie",
+    "deleteProject": "Usuń",
+    "deletingProject": "Usuwam…",
+    "deleteProjectConfirm": "Usunąć projekt \"{name}\" z listy ostatnich projektów i skasować wszystkie pliki wygenerowane przez aplikację?\n\nŚcieżka: {path}\n\nTego nie można cofnąć.",
+    "deleteProjectError": "Nie udało się usunąć projektu."
   },
   "description": {
     "title": "Opisz swój projekt",

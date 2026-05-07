@@ -47,6 +47,87 @@ describe('POST /api/files/save', () => {
     expect(reqContent).toBe('# Wymagania');
   });
 
+  it('zapisuje wygenerowany standards.md razem z dokumentami', async () => {
+    const res = await POST(
+      makeRequest({
+        projectPath: tmpDir,
+        generatedStandards: { content: '# Standards\n\nReguły projektu.' },
+        documents: [{ filename: 'requirements.md', content: '# Wymagania' }],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      success: boolean;
+      savedStandardsFile?: string;
+    };
+    expect(body.success).toBe(true);
+    expect(body.savedStandardsFile).toBe(`${tmpDir}/standards.md`);
+    await expect(fs.readFile(path.join(tmpDir, 'standards.md'), 'utf-8'))
+      .resolves.toBe('# Standards\n\nReguły projektu.');
+  });
+
+  it('archiwizuje poprzednie dokumenty do old_docs i zapisuje snapshot projektu', async () => {
+    await fs.mkdir(path.join(tmpDir, 'docs'), { recursive: true });
+    const oldReqPath = path.join(tmpDir, 'docs', 'requirements.md');
+    await fs.writeFile(oldReqPath, '# Stare wymagania', 'utf-8');
+    const modifiedAt = new Date('2026-05-04T10:11:12.000Z');
+    await fs.utimes(oldReqPath, modifiedAt, modifiedAt);
+
+    const res = await POST(
+      makeRequest({
+        projectPath: tmpDir,
+        archiveExisting: true,
+        documents: [{ filename: 'requirements.md', content: '# Nowe wymagania' }],
+        projectState: {
+          schemaVersion: 1,
+          updatedAt: '2026-05-04T12:00:00.000Z',
+          locale: 'pl',
+          projectDescription: 'Opis projektu zapisany przy generowaniu nowej wersji.',
+          questions: [],
+          answers: [{ questionId: 'q1', answer: 'Odpowiedź biznesowa', skipped: false }],
+          targetTool: 'universal',
+          toolRecommendation: null,
+          aiProvider: 'openai',
+          aiModel: 'gpt-5.4-mini',
+          modelRecommendation: null,
+          standards: null,
+          standardsSource: null,
+          generatedDocuments: {
+            requirements: '# Nowe wymagania',
+            design: null,
+            tasks: null,
+          },
+          documentHistory: { requirements: [], design: [], tasks: [] },
+          handledDocumentSuggestionKeys: [],
+          documentSuggestions: [],
+          documentSuggestionIteration: 0,
+        },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      success: boolean;
+      savedFiles: string[];
+      archivedFiles: string[];
+      projectStateFile: string;
+    };
+    expect(body.success).toBe(true);
+    expect(body.savedFiles).toHaveLength(1);
+    expect(body.archivedFiles).toHaveLength(1);
+    expect(path.basename(body.archivedFiles[0]!)).toMatch(/^requirements_2026-05-04_/);
+
+    await expect(fs.readFile(path.join(tmpDir, 'docs', 'requirements.md'), 'utf-8'))
+      .resolves.toBe('# Nowe wymagania');
+    await expect(fs.readFile(body.archivedFiles[0]!, 'utf-8'))
+      .resolves.toBe('# Stare wymagania');
+
+    const snapshotRaw = await fs.readFile(path.join(tmpDir, '.spec-generator', 'project.json'), 'utf-8');
+    expect(snapshotRaw).toContain('Opis projektu zapisany');
+    expect(snapshotRaw).not.toContain('apiKey');
+  });
+
   it('odrzuca filename z separatorem ścieżki', async () => {
     const res = await POST(
       makeRequest({

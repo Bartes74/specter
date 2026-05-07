@@ -52,6 +52,7 @@ export function useSessionState(initialLocale: AppLocale = 'pl') {
             ...restored,
             apiKey: '', // bezpiecznik
             apiKeyValid: restored.isDemoMode ? restored.apiKeyValid : null,
+            projectMode: restored.projectMode ?? 'new',
             documentSuggestionIteration: restored.documentSuggestionIteration ?? 0,
             currentStep:
               apiKeyMissingAfterReload && restored.currentStep > 4 ? 4 : restored.currentStep,

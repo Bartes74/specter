@@ -10,42 +10,86 @@
   },
   "followUpQuestions": [
     {
-      "id": "framework",
+      "id": "stack-tooling",
       "text": {
-        "pl": "Flutter czy React Native?",
-        "en": "Flutter or React Native?"
+        "pl": "Jaki stack mobilny, wersje SDK i narzędzia chcesz przyjąć jako domyślne?",
+        "en": "Which mobile stack, SDK versions, and tools should be treated as defaults?"
+      },
+      "hint": {
+        "pl": "Np. Flutter/React Native, Dart/TypeScript, iOS/Android SDK, package manager, state management, test runner.",
+        "en": "For example: Flutter/React Native, Dart/TypeScript, iOS/Android SDK, package manager, state management, test runner."
       },
       "isRequired": true
     },
     {
-      "id": "platforms",
+      "id": "architecture-defaults",
       "text": {
-        "pl": "Które platformy? (iOS, Android, obie)",
-        "en": "Which platforms? (iOS, Android, both)"
+        "pl": "Jakie decyzje architektoniczne mają obowiązywać dla UI, domeny i warstwy danych?",
+        "en": "Which architectural decisions should apply to UI, domain, and data layers?"
+      },
+      "hint": {
+        "pl": "Np. feature-first, Clean Architecture, MVVM/BLoC, separacja natywnych integracji, dependency injection.",
+        "en": "For example: feature-first, Clean Architecture, MVVM/BLoC, native integration separation, dependency injection."
       },
       "isRequired": true
     },
     {
-      "id": "offline",
+      "id": "native-offline",
       "text": {
-        "pl": "Czy aplikacja musi działać offline?",
-        "en": "Does the app need to work offline?"
+        "pl": "Jakie standardy integracji natywnych, offline i synchronizacji mają być preferowane?",
+        "en": "Which native integration, offline, and synchronization standards should be preferred?"
+      },
+      "hint": {
+        "pl": "Np. kamera, GPS, push, biometria, local storage, kolejka synchronizacji, konflikty danych, permissions.",
+        "en": "For example: camera, GPS, push, biometrics, local storage, sync queue, data conflicts, permissions."
       },
       "isRequired": true
     },
     {
-      "id": "native-modules",
+      "id": "code-quality",
       "text": {
-        "pl": "Czy potrzebujesz natywnych modułów (kamera, GPS, biometria, push)?",
-        "en": "Do you need native modules (camera, GPS, biometrics, push)?"
+        "pl": "Jak rygorystyczne mają być standardy jakości kodu, typowania i komponentów UI?",
+        "en": "How strict should code quality, typing, and UI component standards be?"
+      },
+      "hint": {
+        "pl": "Np. strict analysis, brak any/dynamic, małe widgety/komponenty, design tokens, konwencje nazw.",
+        "en": "For example: strict analysis, no any/dynamic, small widgets/components, design tokens, naming conventions."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "testing-policy",
+      "text": {
+        "pl": "Jakie testy mają być wymagane dla nowych funkcji mobilnych?",
+        "en": "Which tests should be required for new mobile features?"
+      },
+      "hint": {
+        "pl": "Np. unit dla domeny, widget/component tests, integration tests, smoke E2E, testy permissions i offline.",
+        "en": "For example: domain unit tests, widget/component tests, integration tests, smoke E2E, permissions and offline tests."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "dx-ci-release",
+      "text": {
+        "pl": "Jak ma wyglądać lokalny DX, CI i proces publikacji mobilnej?",
+        "en": "What should local DX, CI, and mobile publishing flow look like?"
+      },
+      "hint": {
+        "pl": "Np. lint/test przed merge, build flavors, Fastlane, signing, TestFlight/internal testing, App Store/Google Play checklist.",
+        "en": "For example: lint/test before merge, build flavors, Fastlane, signing, TestFlight/internal testing, App Store/Google Play checklist."
       },
       "isRequired": false
     },
     {
-      "id": "store-publishing",
+      "id": "operations-maintenance",
       "text": {
-        "pl": "Planowana publikacja w sklepach (App Store, Google Play)?",
-        "en": "Planned publication on stores (App Store, Google Play)?"
+        "pl": "Jakie standardy wydajności, diagnostyki i utrzymania aplikacji mobilnej mają obowiązywać?",
+        "en": "Which performance, diagnostics, and maintenance standards should apply to the mobile app?"
+      },
+      "hint": {
+        "pl": "Np. crash reporting, analytics techniczny, cold start, pamięć, battery usage, feature flags, migracje storage.",
+        "en": "For example: crash reporting, technical analytics, cold start, memory, battery usage, feature flags, storage migrations."
       },
       "isRequired": false
     }

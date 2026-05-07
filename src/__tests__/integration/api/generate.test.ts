@@ -67,8 +67,10 @@ describe('POST /api/generate (SSE, demo)', () => {
     const completes = events.filter((e) => e.type === 'document_complete');
     const dones = events.filter((e) => e.type === 'done');
     const contents = events.filter((e) => e.type === 'content');
+    const sectionProgress = events.filter((e) => e.type === 'section_progress');
 
     expect(progress.length).toBe(3);
+    expect(sectionProgress.length).toBeGreaterThanOrEqual(3);
     expect(completes.length).toBe(3);
     expect(dones.length).toBe(1);
     expect(contents.length).toBeGreaterThan(0);
@@ -79,6 +81,16 @@ describe('POST /api/generate (SSE, demo)', () => {
       'design',
       'tasks',
     ]);
+
+    expect(sectionProgress).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'section_progress',
+          document: 'requirements',
+          sectionId: 'demo-section',
+        }),
+      ]),
+    );
 
     // Każdy document_complete ma niepustą treść
     for (const ev of completes) {

@@ -10,34 +10,86 @@
   },
   "followUpQuestions": [
     {
-      "id": "tooling",
+      "id": "stack-tooling",
       "text": {
-        "pl": "Jakie narzędzie do monorepo? (pnpm workspaces, Turborepo, Nx, Lerna, Bazel)",
-        "en": "Which monorepo tool? (pnpm workspaces, Turborepo, Nx, Lerna, Bazel)"
+        "pl": "Jaki stack, języki i narzędzia monorepo chcesz przyjąć jako domyślne?",
+        "en": "Which stack, languages, and monorepo tools should be treated as defaults?"
+      },
+      "hint": {
+        "pl": "Np. pnpm workspaces, Turborepo, Nx, Bazel, TypeScript/Python/Go/Rust, package manager, task runner.",
+        "en": "For example: pnpm workspaces, Turborepo, Nx, Bazel, TypeScript/Python/Go/Rust, package manager, task runner."
       },
       "isRequired": true
     },
     {
-      "id": "languages",
+      "id": "architecture-boundaries",
       "text": {
-        "pl": "Jakie języki w repo? (TypeScript, Python, Go, Rust, mix)",
-        "en": "Which languages? (TypeScript, Python, Go, Rust, mix)"
+        "pl": "Jakie zasady granic pakietów, aplikacji i współdzielonego kodu mają obowiązywać?",
+        "en": "Which package, app, and shared-code boundary rules should apply?"
+      },
+      "hint": {
+        "pl": "Np. ownerzy pakietów, publiczne API, zakaz importów przez internal, dependency graph, feature libraries.",
+        "en": "For example: package owners, public APIs, no imports from internals, dependency graph, feature libraries."
       },
       "isRequired": true
     },
     {
-      "id": "shared-packages",
+      "id": "code-conventions",
       "text": {
-        "pl": "Ile spodziewanych pakietów współdzielonych? (mała 1-5, średnia 5-20, duża 20+)",
-        "en": "Expected number of shared packages? (small 1-5, medium 5-20, large 20+)"
+        "pl": "Jakie konwencje kodu, formatowania i typowania mają być wspólne dla całego repo?",
+        "en": "Which code, formatting, and typing conventions should be shared across the repo?"
+      },
+      "hint": {
+        "pl": "Np. shared ESLint/Prettier/ruff, TypeScript strict, nazewnictwo pakietów, struktura katalogów, generators.",
+        "en": "For example: shared ESLint/Prettier/ruff, TypeScript strict, package naming, folder structure, generators."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "testing-policy",
+      "text": {
+        "pl": "Jakie testy i zasady affected/changed mają być wymagane?",
+        "en": "Which tests and affected/changed rules should be required?"
+      },
+      "hint": {
+        "pl": "Np. unit per package, integration dla aplikacji, E2E krytycznych ścieżek, affected tests, coverage dla shared packages.",
+        "en": "For example: unit per package, app integration tests, E2E for critical paths, affected tests, coverage for shared packages."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "dx-ci-release",
+      "text": {
+        "pl": "Jak ma wyglądać lokalny DX, CI i cache/build pipeline w monorepo?",
+        "en": "What should local DX, CI, and cache/build pipeline look like in the monorepo?"
+      },
+      "hint": {
+        "pl": "Np. remote cache, incremental builds, lint/typecheck/test przed merge, preview apps, workspace scripts.",
+        "en": "For example: remote cache, incremental builds, lint/typecheck/test before merge, preview apps, workspace scripts."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "versioning-release",
+      "text": {
+        "pl": "Jakie standardy wersjonowania, release i changelogów mają obowiązywać?",
+        "en": "Which versioning, release, and changelog standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. independent/joint release, Changesets, semantic versioning, conventional commits, migracje pakietów.",
+        "en": "For example: independent/joint release, Changesets, semantic versioning, conventional commits, package migrations."
       },
       "isRequired": false
     },
     {
-      "id": "deployment",
+      "id": "maintenance-policy",
       "text": {
-        "pl": "Jak wdrażane są pakiety? (osobne deploye, wspólny release, hybryda)",
-        "en": "How are packages deployed? (independent, joint release, hybrid)"
+        "pl": "Jakie standardy utrzymania zależności, bezpieczeństwa i skalowania repo mają obowiązywać?",
+        "en": "Which dependency, security, and repository scaling maintenance standards should apply?"
+      },
+      "hint": {
+        "pl": "Np. Renovate, lockfile policy, dependency boundaries, security scanning, ownership, deprecations.",
+        "en": "For example: Renovate, lockfile policy, dependency boundaries, security scanning, ownership, deprecations."
       },
       "isRequired": false
     }

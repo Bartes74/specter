@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildChatCompletionRequest } from '@/services/ai/OpenAIAdapter';
+import { assertOpenAIFinishReason, buildChatCompletionRequest } from '@/services/ai/OpenAIAdapter';
+import { AIAdapterError } from '@/services/ai/types';
 
 const messages = [{ role: 'user' as const, content: 'Napisz specyfikację.' }];
 
@@ -69,5 +70,16 @@ describe('OpenAIAdapter request params', () => {
       temperature: 0.5,
     });
     expect(request).not.toHaveProperty('max_completion_tokens');
+  });
+
+  it('traktuje finish_reason=length jako błąd limitu tokenów', () => {
+    expect(() => assertOpenAIFinishReason('length', 'partial')).toThrow(/limit tokenów/i);
+    try {
+      assertOpenAIFinishReason('length', 'partial');
+    } catch (err) {
+      expect(err).toBeInstanceOf(AIAdapterError);
+      expect((err as AIAdapterError).partialContent).toBe('partial');
+    }
+    expect(() => assertOpenAIFinishReason('stop')).not.toThrow();
   });
 });

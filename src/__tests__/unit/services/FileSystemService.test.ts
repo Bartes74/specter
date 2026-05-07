@@ -15,9 +15,14 @@ import {
   saveDocument,
   readDocument,
   createProject,
+  saveProjectSnapshot,
+  deleteGeneratedProjectArtifacts,
   STANDARDS_FILENAME,
   DOCS_DIRNAME,
+  OLD_DOCS_DIRNAME,
+  PROJECT_STATE_DIRNAME,
 } from '@/services/FileSystemService';
+import type { ProjectSnapshot } from '@/types/project';
 
 let tmpDir: string;
 
@@ -147,5 +152,80 @@ describe('createProject', () => {
     await expect(createProject('/nonexistent/path/here', 'whatever')).rejects.toThrow(
       'parent.notFound',
     );
+  });
+});
+
+describe('deleteGeneratedProjectArtifacts', () => {
+  const snapshot = (overrides: Partial<ProjectSnapshot> = {}): ProjectSnapshot => ({
+    schemaVersion: 1,
+    updatedAt: '2026-05-05T10:00:00.000Z',
+    locale: 'pl',
+    projectDescription: 'Projekt testowy z wygenerowanymi artefaktami.',
+    questions: [],
+    answers: [],
+    targetTool: null,
+    toolRecommendation: null,
+    aiProvider: null,
+    aiModel: null,
+    modelRecommendation: null,
+    standards: '# Standards',
+    standardsSource: 'generated',
+    standardsGeneration: {
+      selectedProfileId: 'webapp-react',
+      followUpAnswers: [],
+      draftContent: '# Standards',
+    },
+    generatedDocuments: { requirements: null, design: null, tasks: null },
+    documentHistory: { requirements: [], design: [], tasks: [] },
+    handledDocumentSuggestionKeys: [],
+    documentSuggestions: [],
+    documentSuggestionIteration: 0,
+    ...overrides,
+    currentStep: overrides.currentStep ?? 0,
+    activeQuestionIndex: overrides.activeQuestionIndex ?? 0,
+  });
+
+  it('usuwa wygenerowane pliki i zostawia pliki użytkownika', async () => {
+    await fs.mkdir(path.join(tmpDir, DOCS_DIRNAME), { recursive: true });
+    await fs.mkdir(path.join(tmpDir, OLD_DOCS_DIRNAME), { recursive: true });
+    await fs.writeFile(path.join(tmpDir, DOCS_DIRNAME, 'requirements.md'), '# Req');
+    await fs.writeFile(path.join(tmpDir, DOCS_DIRNAME, 'notes.md'), '# Notatki użytkownika');
+    await fs.writeFile(path.join(tmpDir, OLD_DOCS_DIRNAME, 'requirements_2026-01-01_10-00-00.md'), '# Old');
+    await fs.writeFile(path.join(tmpDir, STANDARDS_FILENAME), '# Standards');
+    await saveProjectSnapshot(tmpDir, snapshot());
+
+    const deleted = await deleteGeneratedProjectArtifacts(tmpDir);
+
+    expect(deleted.length).toBeGreaterThan(0);
+    await expect(fs.access(path.join(tmpDir, DOCS_DIRNAME, 'requirements.md'))).rejects.toThrow();
+    await expect(fs.access(path.join(tmpDir, OLD_DOCS_DIRNAME))).rejects.toThrow();
+    await expect(fs.access(path.join(tmpDir, PROJECT_STATE_DIRNAME))).rejects.toThrow();
+    await expect(fs.access(path.join(tmpDir, STANDARDS_FILENAME))).rejects.toThrow();
+    await expect(fs.readFile(path.join(tmpDir, DOCS_DIRNAME, 'notes.md'), 'utf-8'))
+      .resolves.toBe('# Notatki użytkownika');
+    await expect(fs.access(tmpDir)).resolves.toBeUndefined();
+  });
+
+  it('usuwa pusty katalog projektu po skasowaniu artefaktów aplikacji', async () => {
+    await fs.mkdir(path.join(tmpDir, DOCS_DIRNAME), { recursive: true });
+    await fs.writeFile(path.join(tmpDir, DOCS_DIRNAME, 'tasks.md'), '# Tasks');
+    await saveProjectSnapshot(tmpDir, snapshot({ standards: null, standardsSource: null, standardsGeneration: undefined }));
+
+    await deleteGeneratedProjectArtifacts(tmpDir);
+
+    await expect(fs.access(tmpDir)).rejects.toThrow();
+  });
+
+  it('nie usuwa istniejącego standards.md, jeśli snapshot oznacza go jako existing', async () => {
+    await fs.writeFile(path.join(tmpDir, STANDARDS_FILENAME), '# Existing Standards');
+    await saveProjectSnapshot(tmpDir, snapshot({
+      standardsSource: 'existing',
+      standardsGeneration: undefined,
+    }));
+
+    await deleteGeneratedProjectArtifacts(tmpDir);
+
+    await expect(fs.readFile(path.join(tmpDir, STANDARDS_FILENAME), 'utf-8'))
+      .resolves.toBe('# Existing Standards');
   });
 });

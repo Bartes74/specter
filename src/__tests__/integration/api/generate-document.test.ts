@@ -49,6 +49,7 @@ describe('POST /api/generate/document', () => {
     expect(events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: 'progress', step: 'requirements' }),
+        expect.objectContaining({ type: 'section_progress', document: 'requirements' }),
         expect.objectContaining({ type: 'document_complete', document: 'requirements' }),
         expect.objectContaining({ type: 'done' }),
       ]),

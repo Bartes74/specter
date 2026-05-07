@@ -6,9 +6,9 @@
  *
  * Sprawdzamy holistycznie: dla DOWOLNEJ kombinacji wywołań API w trybie demo
  * (POST /api/files/save, POST /api/projects/create, POST /api/projects/recent,
- *  POST /api/standards/generate w trybie zapisu), liczba zapisów na dysk = 0.
+ *  POST /api/projects/save-state, POST /api/projects/delete), liczba zapisów na dysk = 0.
  *
- * Test sprawdza wszystkie 3 endpointy FS-owe + endpoint preferencji.
+ * Test sprawdza endpointy plikowe oraz preferencje, które w demo muszą być no-op.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs/promises';
@@ -16,6 +16,8 @@ import * as path from 'node:path';
 import os from 'node:os';
 import { POST as filesSavePOST } from '@/app/api/files/save/route';
 import { POST as projectsCreatePOST } from '@/app/api/projects/create/route';
+import { POST as projectsSaveStatePOST } from '@/app/api/projects/save-state/route';
+import { POST as projectsDeletePOST } from '@/app/api/projects/delete/route';
 
 let tmpHome: string;
 let tmpProject: string;
@@ -68,7 +70,7 @@ async function listAllFiles(dir: string): Promise<string[]> {
 }
 
 describe('Property 21: Tryb Demo NIGDY nie zapisuje na dysk', () => {
-  it('files/save + projects/create + projects/recent w trybie demo: ZERO plików na dysku', async () => {
+  it('files/save + projects/create + projects/recent + projects/save-state + projects/delete w trybie demo: ZERO plików na dysku', async () => {
     const beforeProj = await listAllFiles(tmpProject);
     const beforeHome = await listAllFiles(tmpHome);
 
@@ -109,6 +111,46 @@ describe('Property 21: Tryb Demo NIGDY nie zapisuje na dysk', () => {
     );
     await recentRoute.GET(
       new Request('http://localhost/api/projects/recent', { headers: demoHeaders }),
+    );
+
+    // 4. projects/save-state
+    await projectsSaveStatePOST(
+      jsonReq(
+        'http://localhost/api/projects/save-state',
+        {
+          projectPath: tmpProject,
+          projectState: {
+            schemaVersion: 1,
+            updatedAt: '2026-05-04T12:00:00.000Z',
+            locale: 'pl',
+            projectDescription: 'Demo bez zapisu na dysk.',
+            questions: [],
+            answers: [],
+            targetTool: 'universal',
+            toolRecommendation: null,
+            aiProvider: 'openai',
+            aiModel: 'gpt-5.4-mini',
+            modelRecommendation: null,
+            standards: null,
+            standardsSource: null,
+            generatedDocuments: { requirements: null, design: null, tasks: null },
+            documentHistory: { requirements: [], design: [], tasks: [] },
+            handledDocumentSuggestionKeys: [],
+            documentSuggestions: [],
+            documentSuggestionIteration: 0,
+          },
+        },
+        demoHeaders,
+      ),
+    );
+
+    // 5. projects/delete
+    await projectsDeletePOST(
+      jsonReq(
+        'http://localhost/api/projects/delete',
+        { projectPath: tmpProject },
+        demoHeaders,
+      ),
     );
 
     const afterProj = await listAllFiles(tmpProject);

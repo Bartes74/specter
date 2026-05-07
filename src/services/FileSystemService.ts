@@ -11,6 +11,10 @@ import * as path from 'node:path';
 import { constants as fsConstants } from 'node:fs';
 import os from 'node:os';
 import { validateProjectName } from '@/lib/validation';
+import { sanitizeLogs } from '@/lib/security';
+import { projectSnapshotSchema } from '@/lib/api-schemas';
+import type { ProjectSnapshotInput } from '@/lib/api-schemas';
+import type { LoadedProjectWorkspace, ProjectSnapshot } from '@/types/project';
 
 export interface PathValidationResult {
   valid: boolean;
@@ -23,6 +27,9 @@ export interface PathValidationResult {
 
 export const STANDARDS_FILENAME = 'standards.md';
 export const DOCS_DIRNAME = 'docs';
+export const OLD_DOCS_DIRNAME = 'old_docs';
+export const PROJECT_STATE_DIRNAME = '.spec-generator';
+export const PROJECT_STATE_FILENAME = 'project.json';
 export const STANDARDS_PREVIEW_LENGTH = 500;
 
 const SUSPICIOUS_PATH_SEGMENTS = ['..', '~'];
@@ -187,6 +194,108 @@ export async function saveStandards(projectPath: string, content: string): Promi
 }
 
 /**
+ * Czyta metadane projektu zapisane przez Spec Generator.
+ * Plik nie zawiera kluczy API; jeśli jest uszkodzony, zwracamy null.
+ */
+export async function readProjectSnapshot(projectPath: string): Promise<ProjectSnapshot | null> {
+  const absolute = path.resolve(expandHome(projectPath));
+  if (rejectPathTraversal(absolute)) return null;
+  try {
+    const raw = await fs.readFile(projectStatePath(absolute), 'utf-8');
+    const parsed = projectSnapshotSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) return null;
+    return normalizeProjectSnapshot(parsed.data);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Zapisuje metadane projektu obok katalogu projektu, bez klucza API.
+ */
+export async function saveProjectSnapshot(
+  projectPath: string,
+  snapshot: ProjectSnapshot,
+): Promise<string> {
+  const absolute = path.resolve(expandHome(projectPath));
+  if (rejectPathTraversal(absolute)) {
+    throw new Error('path.suspiciousSegment');
+  }
+  const stateDir = path.join(absolute, PROJECT_STATE_DIRNAME);
+  await fs.mkdir(stateDir, { recursive: true, mode: 0o700 });
+  const content = sanitizeLogs(JSON.stringify(snapshot, null, 2));
+  const filePath = projectStatePath(absolute);
+  await fs.writeFile(filePath, content, { encoding: 'utf-8', mode: 0o600 });
+  return filePath;
+}
+
+/**
+ * Wczytuje pełny workspace projektu: snapshot, obecne docs/*.md i standards.md.
+ */
+export async function readProjectWorkspace(projectPath: string): Promise<LoadedProjectWorkspace> {
+  return {
+    projectState: await readProjectSnapshot(projectPath),
+    documents: {
+      requirements: await readDocument(projectPath, 'requirements.md'),
+      design: await readDocument(projectPath, 'design.md'),
+      tasks: await readDocument(projectPath, 'tasks.md'),
+    },
+    standards: await readStandards(projectPath),
+  };
+}
+
+/**
+ * Usuwa artefakty wygenerowane przez aplikację dla projektu.
+ *
+ * Bezpieczeństwo: nie usuwa całego niepustego katalogu projektu, żeby nie skasować
+ * plików użytkownika z ręcznie wskazanego folderu. Katalog projektu znika tylko,
+ * jeśli po usunięciu artefaktów aplikacji jest pusty.
+ */
+export async function deleteGeneratedProjectArtifacts(projectPath: string): Promise<string[]> {
+  const absolute = path.resolve(expandHome(projectPath));
+  if (rejectPathTraversal(absolute)) {
+    throw new Error('path.suspiciousSegment');
+  }
+
+  let projectStat: Awaited<ReturnType<typeof fs.stat>>;
+  try {
+    projectStat = await fs.stat(absolute);
+  } catch {
+    return [];
+  }
+  if (!projectStat.isDirectory()) {
+    throw new Error('path.notDirectory');
+  }
+
+  const snapshot = await readProjectSnapshot(absolute);
+  const deleted: string[] = [];
+  const generatedDocumentFiles = ['requirements.md', 'design.md', 'tasks.md'];
+
+  for (const filename of generatedDocumentFiles) {
+    const filePath = path.join(absolute, DOCS_DIRNAME, filename);
+    if (await removePath(filePath)) deleted.push(filePath);
+  }
+
+  const oldDocsPath = path.join(absolute, OLD_DOCS_DIRNAME);
+  if (await removePath(oldDocsPath)) deleted.push(oldDocsPath);
+
+  const shouldDeleteStandards = snapshot?.standardsSource === 'generated' || Boolean(snapshot?.standardsGeneration);
+  if (shouldDeleteStandards) {
+    const standardsPath = path.join(absolute, STANDARDS_FILENAME);
+    if (await removePath(standardsPath)) deleted.push(standardsPath);
+  }
+
+  const stateDir = path.join(absolute, PROJECT_STATE_DIRNAME);
+  if (await removePath(stateDir)) deleted.push(stateDir);
+
+  const docsDir = path.join(absolute, DOCS_DIRNAME);
+  if (await removeEmptyDirectory(docsDir)) deleted.push(docsDir);
+  if (await removeEmptyDirectory(absolute)) deleted.push(absolute);
+
+  return deleted;
+}
+
+/**
  * Tworzy katalog /docs jeśli nie istnieje (Wymaganie 1.10).
  */
 export async function ensureDocsDirectory(projectPath: string): Promise<string> {
@@ -218,6 +327,44 @@ export async function saveDocument(
 }
 
 /**
+ * Przenosi istniejące wersje dokumentów z /docs do /old_docs.
+ * Nazwa archiwum zawiera datę modyfikacji oryginalnego pliku.
+ */
+export async function archiveExistingDocuments(
+  projectPath: string,
+  filenames: string[],
+): Promise<string[]> {
+  const absolute = path.resolve(expandHome(projectPath));
+  if (rejectPathTraversal(absolute)) {
+    throw new Error('path.suspiciousSegment');
+  }
+  const archived: string[] = [];
+  const docsPath = path.join(absolute, DOCS_DIRNAME);
+  const oldDocsPath = path.join(absolute, OLD_DOCS_DIRNAME);
+
+  for (const filename of filenames) {
+    if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+      throw new Error('filename.illegal');
+    }
+    const source = path.join(docsPath, filename);
+    let stat: Awaited<ReturnType<typeof fs.stat>>;
+    try {
+      stat = await fs.stat(source);
+    } catch {
+      continue;
+    }
+    if (!stat.isFile()) continue;
+
+    await fs.mkdir(oldDocsPath, { recursive: true });
+    const destination = await nextArchivePath(oldDocsPath, filename, stat.mtime);
+    await fs.rename(source, destination);
+    archived.push(destination);
+  }
+
+  return archived;
+}
+
+/**
  * Czyta dokument z katalogu /docs projektu (np. do pre-load przy edycji).
  */
 export async function readDocument(
@@ -234,6 +381,94 @@ export async function readDocument(
   } catch {
     return null;
   }
+}
+
+function projectStatePath(projectAbsolutePath: string): string {
+  return path.join(projectAbsolutePath, PROJECT_STATE_DIRNAME, PROJECT_STATE_FILENAME);
+}
+
+async function nextArchivePath(
+  oldDocsPath: string,
+  filename: string,
+  modifiedAt: Date,
+): Promise<string> {
+  const parsed = path.parse(filename);
+  const timestamp = formatArchiveTimestamp(modifiedAt);
+  const base = `${parsed.name}_${timestamp}${parsed.ext || '.md'}`;
+  let candidate = path.join(oldDocsPath, base);
+  let counter = 2;
+  while (await exists(candidate)) {
+    candidate = path.join(oldDocsPath, `${parsed.name}_${timestamp}_${counter}${parsed.ext || '.md'}`);
+    counter += 1;
+  }
+  return candidate;
+}
+
+async function exists(filePath: string): Promise<boolean> {
+  return fs.access(filePath).then(() => true).catch(() => false);
+}
+
+async function removePath(targetPath: string): Promise<boolean> {
+  try {
+    await fs.lstat(targetPath);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw err;
+  }
+  await fs.rm(targetPath, { recursive: true, force: true });
+  return true;
+}
+
+async function removeEmptyDirectory(targetPath: string): Promise<boolean> {
+  try {
+    await fs.rmdir(targetPath);
+    return true;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT' || code === 'ENOTEMPTY' || code === 'EEXIST') {
+      return false;
+    }
+    throw err;
+  }
+}
+
+function formatArchiveTimestamp(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join('-') + '_' + [
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join('-');
+}
+
+function normalizeProjectSnapshot(raw: ProjectSnapshotInput): ProjectSnapshot {
+  return {
+    ...raw,
+    schemaVersion: 1,
+    currentStep: raw.currentStep ?? 0,
+    activeQuestionIndex: raw.activeQuestionIndex ?? 0,
+    questions: raw.questions ?? [],
+    answers: raw.answers ?? [],
+    standardsGeneration: raw.standardsGeneration
+      ? {
+          selectedProfileId: raw.standardsGeneration.selectedProfileId,
+          followUpAnswers: raw.standardsGeneration.followUpAnswers ?? [],
+          draftContent: raw.standardsGeneration.draftContent,
+        }
+      : undefined,
+    documentHistory: {
+      requirements: raw.documentHistory?.requirements ?? [],
+      design: raw.documentHistory?.design ?? [],
+      tasks: raw.documentHistory?.tasks ?? [],
+    },
+    handledDocumentSuggestionKeys: raw.handledDocumentSuggestionKeys ?? [],
+    documentSuggestions: raw.documentSuggestions ?? [],
+    documentSuggestionIteration: raw.documentSuggestionIteration ?? 0,
+  };
 }
 
 /**

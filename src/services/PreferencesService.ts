@@ -87,6 +87,20 @@ export async function addRecentProject(project: RecentProject): Promise<UserPref
 }
 
 /**
+ * Usuwa projekt z listy ostatnich po znormalizowanej ścieżce.
+ */
+export async function removeRecentProject(projectPath: string): Promise<UserPreferences> {
+  const prefs = await load();
+  const normalized = path.resolve(projectPath);
+  const next: UserPreferences = {
+    ...prefs,
+    recentProjects: prefs.recentProjects.filter((project) => path.resolve(project.path) !== normalized),
+  };
+  await save(next);
+  return next;
+}
+
+/**
  * Logika dodawania (wydzielona, żeby property test mógł ją sprawdzać bez I/O).
  */
 export function applyRecentProject(

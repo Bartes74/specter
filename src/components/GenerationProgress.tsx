@@ -2,7 +2,8 @@
 
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
-import { Check, Loader } from './ui/Icon';
+import { Button } from './ui/Button';
+import { Check, Loader, X } from './ui/Icon';
 import type { GenerationDocuments, GenerationProgressState } from '@/lib/useGeneration';
 
 const DOCS = [
@@ -14,9 +15,11 @@ const DOCS = [
 export function GenerationProgress({
   progress,
   documents,
+  onStop,
 }: {
   progress: GenerationProgressState;
   documents: GenerationDocuments;
+  onStop?: () => void;
 }) {
   return (
     <div className="space-y-6">
@@ -36,17 +39,33 @@ export function GenerationProgress({
                   <Badge tone="neutral">Oczekuje</Badge>
                 )}
               </div>
+              {active && progress.section?.document === id && (
+                <p className="mt-4 text-sm text-ink-muted">
+                  {progress.section.total > 0
+                    ? `Sekcja ${progress.section.index}/${progress.section.total}: ${progress.section.sectionTitle}`
+                    : 'Planowanie sekcji'}
+                </p>
+              )}
             </Card>
           );
         })}
       </div>
 
       <Card variant="ghost" padding="lg">
-        <p className="eyebrow mb-2">Status</p>
-        <p className="text-lg text-ink">
-          {progress.message || (progress.status === 'completed' ? 'Generowanie zakończone' : 'Gotowe do startu')}
-        </p>
-        {progress.error && <p className="mt-2 text-sm text-danger">{progress.error.message}</p>}
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="eyebrow mb-2">Status</p>
+            <p className="text-lg text-ink">
+              {progress.message || (progress.status === 'completed' ? 'Generowanie zakończone' : 'Gotowe do startu')}
+            </p>
+            {progress.error && <p className="mt-2 text-sm text-danger">{progress.error.message}</p>}
+          </div>
+          {progress.status === 'generating' && onStop && (
+            <Button variant="danger" iconLeft={<X size={14} />} onClick={onStop}>
+              Stop
+            </Button>
+          )}
+        </div>
       </Card>
 
       <div className="grid lg:grid-cols-3 gap-4">

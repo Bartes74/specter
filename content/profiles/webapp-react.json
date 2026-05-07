@@ -10,42 +10,86 @@
   },
   "followUpQuestions": [
     {
-      "id": "ssr",
+      "id": "stack-tooling",
       "text": {
-        "pl": "Czy aplikacja będzie renderowana po stronie serwera (SSR), czy tylko w przeglądarce (SPA)?",
-        "en": "Will the app be server-rendered (SSR) or browser-only (SPA)?"
+        "pl": "Jaki stack i wersje technologii chcesz przyjąć jako domyślne?",
+        "en": "Which stack and technology versions should be treated as defaults?"
+      },
+      "hint": {
+        "pl": "Np. Next.js App Router, React, TypeScript, Tailwind, baza danych, ORM, test runner.",
+        "en": "For example: Next.js App Router, React, TypeScript, Tailwind, database, ORM, test runner."
       },
       "isRequired": true
     },
     {
-      "id": "typescript",
+      "id": "architecture-defaults",
       "text": {
-        "pl": "Czy używasz TypeScript?",
-        "en": "Are you using TypeScript?"
+        "pl": "Jakie decyzje architektoniczne mają być preferowane, jeśli nie podasz inaczej?",
+        "en": "Which architectural decisions should be preferred when no other guidance is given?"
+      },
+      "hint": {
+        "pl": "Np. SSR/SSG/CSR, Server Components, API routes/server actions, feature-first, separacja domeny od UI.",
+        "en": "For example: SSR/SSG/CSR, Server Components, API routes/server actions, feature-first, domain/UI separation."
       },
       "isRequired": true
     },
     {
-      "id": "auth",
+      "id": "library-patterns",
       "text": {
-        "pl": "Czy aplikacja będzie wymagać logowania użytkowników?",
-        "en": "Will the app require user authentication?"
+        "pl": "Jakie biblioteki i wzorce są dozwolone lub preferowane dla stanu, formularzy, pobierania danych i walidacji?",
+        "en": "Which libraries and patterns are allowed or preferred for state, forms, data fetching, and validation?"
+      },
+      "hint": {
+        "pl": "Np. TanStack Query, Zustand, React Hook Form, Zod, URL state, unikanie Redux.",
+        "en": "For example: TanStack Query, Zustand, React Hook Form, Zod, URL state, avoiding Redux."
       },
       "isRequired": true
     },
     {
-      "id": "state-mgmt",
+      "id": "code-quality",
       "text": {
-        "pl": "Jakie zarządzanie stanem? (np. Redux, Zustand, React Query, Context)",
-        "en": "What state management? (e.g. Redux, Zustand, React Query, Context)"
+        "pl": "Jak rygorystyczne mają być standardy jakości kodu?",
+        "en": "How strict should the code quality standards be?"
       },
-      "isRequired": false
+      "hint": {
+        "pl": "Np. TypeScript strict, brak any, małe komponenty, limity złożoności, konwencje nazw, struktura katalogów.",
+        "en": "For example: TypeScript strict, no any, small components, complexity limits, naming conventions, folder structure."
+      },
+      "isRequired": true
     },
     {
-      "id": "compliance",
+      "id": "testing-policy",
       "text": {
-        "pl": "Wymagana zgodność (RODO, WCAG 2.1 AA, HIPAA)?",
-        "en": "Required compliance (GDPR, WCAG 2.1 AA, HIPAA)?"
+        "pl": "Jakie testy mają być wymagane dla nowych funkcji?",
+        "en": "Which tests should be required for new features?"
+      },
+      "hint": {
+        "pl": "Np. unit dla logiki, integration dla API, component tests dla UI, E2E dla krytycznych ścieżek, a11y smoke tests.",
+        "en": "For example: unit tests for logic, API integration tests, UI component tests, E2E for critical flows, a11y smoke tests."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "ux-accessibility",
+      "text": {
+        "pl": "Jakie standardy UX, dostępności i responsywności mają obowiązywać domyślnie?",
+        "en": "Which UX, accessibility, and responsiveness standards should apply by default?"
+      },
+      "hint": {
+        "pl": "Np. WCAG AA jako praktyka techniczna, obsługa klawiatury, focus states, mobile-first, stany loading/error/empty.",
+        "en": "For example: WCAG AA as an engineering practice, keyboard support, focus states, mobile-first, loading/error/empty states."
+      },
+      "isRequired": true
+    },
+    {
+      "id": "operations-maintenance",
+      "text": {
+        "pl": "Jakie są ograniczenia utrzymaniowe i operacyjne projektu?",
+        "en": "What operational and maintenance constraints should guide the project?"
+      },
+      "hint": {
+        "pl": "Np. prostota wdrożenia, minimalna liczba zależności, brak vendor lock-in, CI przed merge, logging, monitoring, budżet wydajności.",
+        "en": "For example: deployment simplicity, minimal dependencies, no vendor lock-in, CI before merge, logging, monitoring, performance budget."
       },
       "isRequired": false
     }
